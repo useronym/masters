@@ -1,0 +1,12 @@
+auto/
+_minted-thesis/
+*.aux
+*.bcf
+*.dvi
+*.idx
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.toc
