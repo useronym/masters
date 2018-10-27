@@ -280,20 +280,26 @@ mutual
   ⟦_⟧ᵉ : Env → Set
   ⟦ xs ⟧ᵉ = ListD ⟦_⟧ᵗ xs
 
-  record Closure {a b : Type} {e : Env} : Set where
+  ⟦_⟧ᵈ : List ClosureT → Set
+  ⟦ xs ⟧ᵈ = ListD ⟦_⟧ᶜˡ xs
+    where ⟦_⟧ᶜˡ : ClosureT → Set
+          ⟦ mkClosureT from to e ⟧ᶜˡ = Closure from to e
+
+  record Closure (a b : Type) (e : Env) : Set where
     inductive
-    constructor ⟦_⟧ᶠ×⟦_⟧ᵉ
+    constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
     field
       {f} : FunDump
-      ⟦f⟧ᶠ : ⊢ [] # (a ∷ e) # (mkClosureT a b e ∷ f) ↝ [ b ] # [] # f
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (mkClosureT a b e ∷ f) ↝ [ b ] # [] # f
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
+      ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
   ⟦_⟧ᵗ : Type → Set
   ⟦ intT ⟧ᵗ           = ℤ
   ⟦ boolT ⟧ᵗ          = Bool
   ⟦ pairT t₁ t₂ ⟧ᵗ    = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
   ⟦ funT a b ⟧ᵗ       = ⊤
-  ⟦ closureT a b e ⟧ᵗ = Closure {a} {b} {e = e}
+  ⟦ closureT a b e ⟧ᵗ = Closure a b e
   ⟦ envT e ⟧ᵗ         = ⟦ e ⟧ᵉ
   ⟦ listT t ⟧ᵗ        = List ⟦ t ⟧ᵗ
 
@@ -301,39 +307,36 @@ mutual
 ⟦ [] ⟧ˢ     = ⊤
 ⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
 
-⟦_⟧ᶠ : List ClosureT → Set
-⟦ xs ⟧ᶠ = ListD ⟦_⟧ᶜˡ xs
-  where ⟦_⟧ᶜˡ : ClosureT → Set
-        ⟦ mkClosureT from to e ⟧ᶜˡ = Closure {from} {to} {e}
 
---run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᶠ → ⊢ s # e # f ↝ s' # e' # f'
---                         → Delay ⟦ s' ⟧ˢ i
---run s e f ∅        = now s
---run s e f (ldf code >> r) = run (⟦ code ⟧ᶠ×⟦ e ⟧ᵉ , s) e f r
---run s e f (lett >> r) = {!!}
---run (from , ⟦ code ⟧ᶠ×⟦ fE ⟧ᵉ , s) e f (ap >> r) =
---  later
---    λ where
---      .force →
---        do
---          (to , _) ← run tt (consD from fE) {!consD ? f!} code
---          run (to , s) e f r
---run s e f (tc at >> r) = {!!}
---run s e f (rtn >> r) = {! !}
---run s e f (nil >> r) = {!!}
---run s e f (ldc const >> r) = {!!}
---run s e f (ld at >> r) = run (lookupD e at , s) e f r
---run s e f (flp >> r) = {!!}
---run s e f (cons >> r) = {!!}
---run s e f (head >> r) = {!!}
---run s e f (tail >> r) = {!!}
---run s e f (pair >> r) = {!!}
---run s e f (fst >> r) = {!!}
---run s e f (snd >> r) = {!!}
---run (a , b , s) e f (add >> r) = {!!}
---run s e f (nil? >> r) = {!!}
---run s e f (not >> r) = {!!}
---run s e f (if x x₁ >> r) = {!!}
+run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
+                           → Delay ⟦ s' ⟧ˢ i
+run s e d ∅        = now s
+run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
+run s e d (lett >> r) = {!!}
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
+  later
+    λ where
+      .force →
+        do
+          (to , _) ← run tt (consD from fE) (consD ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ dump) code
+          run (to , s) e d r
+run s e d (tc at >> r) with lookupD d at
+… | code = {!!}
+run (b , _) _ (consD _ d) (rtn >> r) = run (b , tt) nilD d r
+run s e d (nil >> r) = {!!}
+run s e d (ldc const >> r) = {!!}
+run s e d (ld at >> r) = run (lookupD e at , s) e d r
+run s e d (flp >> r) = {!!}
+run s e d (cons >> r) = {!!}
+run s e d (head >> r) = {!!}
+run s e d (tail >> r) = {!!}
+run s e d (pair >> r) = {!!}
+run s e d (fst >> r) = {!!}
+run s e d (snd >> r) = {!!}
+run s e d (add >> r) = {!!}
+run s e d (nil? >> r) = {!!}
+run s e d (not >> r) = {!!}
+run s e d (if x x₁ >> r) = {!!}
 
 \end{code}
 
