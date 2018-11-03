@@ -87,46 +87,64 @@
 
 \begin{code}
 open import Function using (flip)
-open import Data.Unit using (⊤; tt)
-open import Data.Bool using (Bool) renaming (not to ¬_)
+open import Data.Unit using (⊤) renaming (tt to ⋅)
+open import Data.Bool using (Bool) renaming (not to ¬_; true to tt; false to ff)
 open import Data.Integer using (ℤ; +_; _+_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax)
-open import Data.List using (List; []; [_]; _∷_; map; length; lookup)
+open import Data.List using (List; []; [_]; _∷_; map; length)--; lookup)
 open import Size
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later) renaming (bind to _>>=_)
 
+data PathState : Set where
+  openP closedP : PathState
 
-data Path {A : Set} (R : A → A → Set) : A → A → Set where
-  ∅    : ∀ {a} → Path R a a
-  _>>_ : ∀ {a b c} → R a b → Path R b c → Path R a c
+data Path {A : Set} (R₁ : A → A → Set) (R₂ : A → A → Set) : A → A → Set where
+  _∎   : ∀ {a b} → R₂ a b → Path R₁ R₂ a b
+  _>>_ : ∀ {a b c} → R₁ a b → Path R₁ R₂ b c → Path R₁ R₂ a c
 infixr 5 _>>_
 
-_>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
-a >| b = a >> b >> ∅
+_>|_ : ∀ {A R₁ R₂} {a b c : A} → R₁ a b → R₂ b c → Path R₁ R₂ a c
+a >| b = a >> (b ∎)
 
-concatenate : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
-concatenate ∅ r = r
-concatenate (x >> l) r = x >> (concatenate l r)
+--_>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
+--a >| b = a >> b >> ∅
 
-snoc : ∀ {A R} {a b c : A} → Path R a b → R b c → Path R a c
-snoc ∅ e = e >> ∅
-snoc (x >> p) e = x >> (snoc p e)
-
-reverse : ∀ {A R} {a b : A} → Path R a b → Path (flip R) b a
-reverse ∅ = ∅
-reverse (x >> p) = snoc (reverse p) x
+--concatenate : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
+--concatenate ∅ r = r
+--concatenate (x >> l) r = x >> (concatenate l r)
+--
+--snoc : ∀ {A R} {a b c : A} → Path R a b → R b c → Path R a c
+--snoc ∅ e = e >> ∅
+--snoc (x >> p) e = x >> (snoc p e)
+--
+--reverse : ∀ {A R} {a b : A} → Path R a b → Path (flip R) b a
+--reverse ∅ = ∅
+--reverse (x >> p) = snoc (reverse p) x
 
 data ListD {I : Set} (T : I → Set) : List I → Set where
   nilD  : ListD T []
   consD : ∀ {x xs} → (elem : T x) → (rest : ListD T xs) → ListD T (x ∷ xs)
 
-lookupD : {I : Set} {T : I → Set} {xs : List I} → ListD T xs → (at : Fin (length xs)) → T (lookup xs at)
-lookupD nilD ()
-lookupD (consD elem xs) zero     = elem
-lookupD (consD elem xs) (suc at) = lookupD xs at
+data _∈_ {A : Set} : A → List A → Set where
+  here : ∀ {x xs} → x ∈ (x ∷ xs)
+  there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+
+lookup : ∀ {A x xs} → x ∈ xs → A
+lookup {x = x} here = x
+lookup (there w)    = lookup w
+
+--to∈ : ∀ {A} {xs : List A} → (at : Fin (length xs)) → lookup xs at ∈ xs
+--to∈ {xs = []} ()
+--to∈ {xs = (x ∷ xs)} zero = here
+--to∈ {xs = (x ∷ xs)} (suc at) = there (to∈ at)
+
+--lookupD : {I : Set} {T : I → Set} {xs : List I} → ListD T xs → (at : Fin (length xs)) → T (lookup xs at)
+--lookupD nilD ()
+--lookupD (consD elem xs) here     = elem
+--lookupD (consD elem xs) (there at) = lookupD xs at
 
 record Stream (A : Set) : Set where
   coinductive
@@ -185,30 +203,38 @@ mkEnv (mkClosureT _ _ env) = env
 -- This is pretty much the call stack, allowing us to make recursive calls.
 FunDump = List ClosureT
 
-data StateKind : Set where
-  running stopped : StateKind
-
 -- A state of our machine.
 record State : Set where
+  constructor _#_#_
   field
-    kind : StateKind
+--    {stopped} : Bool
     s : Stack
     e : Env
     f : FunDump
 
-_#_#_ : Stack → Env → FunDump → State
-s # e # f = record { s = s; e = e; f = f; kind = running }
-
-stoppedWith : Type → FunDump → State
-stoppedWith a f = record { s = [ a ]; e = []; f = f; kind = stopped }
+--_/_/_ : Stack → Env → FunDump → State
+--s / e / f = record { s = s; e = e; f = f; stopped = ff }
+--
+--_<_<_ : Stack → Env → FunDump → State
+--s < e < f = record { s = s; e = e; f = f; stopped = tt }
 
 -- The typing relation.
 infix 5 ⊢_↝_
 infix 5 ⊢_⊳_
+infix 5 ⊢_⊳∎_
 mutual
   ⊢_↝_ : State → State → Set
-  ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ s₁ s₂
+  ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ ⊢_⊳∎_ s₁ s₂
 
+  data ⊢_⊳∎_ : State → State → Set where
+     rtn  : ∀ {s e e' a b f}
+          → ⊢ (b ∷ s) # e # (mkClosureT a b e' ∷ f) ⊳∎ [ b ] # [] # f
+     rap  : ∀ {s e e' f from to}
+          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳∎ [ to ] # [] # f
+     if∎  : ∀ {s s' e e' f f'}
+          → ⊢ s # e # f ↝ s' # e' # f'
+          → ⊢ s # e # f ↝ s' # e' # f'
+          → ⊢ (boolT ∷ s) # e # f ⊳∎ s' # e' # f'
   data ⊢_⊳_ : State → State → Set where
     ldf  : ∀ {s e f from to}
          → (⊢ [] # (from ∷ e) # (mkClosureT from to e ∷ f) ↝ [ to ] # [] # f)
@@ -217,20 +243,19 @@ mutual
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e e' f from to}
          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
-    tc   : ∀ {s e f}
-         → (at : Fin (length f))
-         → let cl = lookup f at in
-           ⊢ (mkFrom cl ∷ s) # e # f ⊳ (mkTo cl ∷ s) # e # f
-    rtn  : ∀ {s e e' a b f}
-         → ⊢ (b ∷ s) # e # (mkClosureT a b e' ∷ f) ⊳ [ b ] # [] # f
+    tc   : ∀ {s e f a b e'}
+         → (mkClosureT a b e' ∈ f)
+         → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
+--    rtn  : ∀ {s e e' a b f}
+--         → ⊢ (b ∷ s) # e # (mkClosureT a b e' ∷ f) ⊳ stoppedWith b f
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     ldc  : ∀ {s e f}
          → (const : Const)
          → ⊢ s # e # f ⊳ (typeof const ∷ s) # e # f
-    ld   : ∀ {s e f}
-         → (at : Fin (length e))
-         → ⊢ s # e # f ⊳ (lookup e at ∷ s) # e # f
+    ld   : ∀ {s e f val}
+         → (val ∈ e)
+         → ⊢ s # e # f ⊳ (val ∷ s) # e # f
     flp  : ∀ {s e f a b}
          → ⊢ (a ∷ b ∷ s) # e # f ⊳ (b ∷ a ∷ s) # e # f
     cons : ∀ {s e f a}
@@ -256,14 +281,6 @@ mutual
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
 
-record Comp : Set where
-  constructor makeComp
-  field
-    {s s'} : Stack
-    {e e'} : Env
-    {f f'} : FunDump
-    c      : ⊢ s # e # f ↝ s' # e' # f'
-
 -- This syntactic sugar makes writing out SECD types easier.
 -- Doesn't play nice with Agda polymorphism?
 withEnv : Env → Type → Type
@@ -275,15 +292,91 @@ withEnv e boolT             = boolT
 withEnv e (closureT a b e') = closureT a b e'
 withEnv e (envT x)          = envT x
 
+---- 2 + 3
+--_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+--_ =
+--    ldc (int (+ 2))
+-- >> ldc (int (+ 3))
+-- >| add
+--
+---- λx.x + 1
+--inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (mkClosureT intT intT [] ∷ f) ↝ [ intT ] # [] # f
+--inc =
+--    ld here
+-- >> ldc (int (+ 1))
+-- >> add
+-- >| rtn
+--
+---- Apply 2 to the above.
+--_ : ⊢ [] # [] # [] ↝ [ intT ] # _ # []
+--_ =
+--    ldf inc
+-- >> ldc (int (+ 2))
+-- >| ap
+--
+---- Partial application test.
+--_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+--_ =
+--     ldf -- First, we construct the curried function.
+--       (ldf
+--         (ld here >> ld (there here) >> add >| rtn) >| rtn)
+--  >> ldc (int (+ 1)) -- Load first argument.
+--  >> ap              -- Apply to curried function. Results in a closure.
+--  >> ldc (int (+ 2)) -- Load second argument.
+--  >| ap              -- Apply to closure.
+--
+---- λa.λb.a+b
+---- withEnv test. Below is what withEnv desugars to.
+---- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
+--plus : ∀ {s e f} → ⊢ s # e # f ↝ (withEnv e (intT ⇒ intT ⇒ intT) ∷ s) # e # f
+--plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn) >> ∅
+
+-- Shit getting real.
+--foldl : ∀ {e f} → ⊢ [] # e # f ↝ stoppedWith (withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT)) f
+foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
+-- Below is the Agda-polymorphic version which does not typecheck. Something to do with how `withEnv e b` does not normalize further.
+-- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
+-- Explicitly typing out the polymorhic version, however, works:
+--foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [
+--         closureT                            -- We construct a function,
+--             (closureT b (closureT a b (b ∷ e)) e) -- which takes the folding function,
+--             (closureT b                     -- returning a function which takes acc,
+--               (closureT (listT a)           -- returning a function which takes the list,
+--                 b                           -- and returns the acc.
+--                 (b ∷ (closureT b (closureT a b (b ∷ e)) e) ∷ e))
+--               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
+--             e
+--         ] # e # f
+foldl = ldf (ldf (ldf body >| rtn) >| rtn)
+  where
+    body =
+         ld here                   -- Load list.
+      >> nil?                      -- Is it empty?
+      >| if∎ {!!} {!!}
+--      >| if∎ (ld (there here) >> rtn ∎) -- if so, load & return acc.
+--          (ld (there (there here))     -- If not, load folding function.
+--        >> ld (there here)           -- Load previous acc.
+--        >> ap                      -- Partially apply folding function.
+--        >> ld here                 -- Load list.
+--        >> head                    -- Get the first element.
+--        >> ap                      -- Apply, yielding new acc.
+--        >> tc (there (there here)) -- Load ourselves.
+--        >> ld (there (there here)) -- Load the folding function.
+--        >> ap
+--        >> flp                     -- Flip resulting closure with our new acc.
+--        >> ap                      -- Apply acc, result in another closure.
+--        >> ld here                 -- Load list.
+--        >> tail                    -- Drop the first element we just processed.
+--        >> rap ∎)                      -- Finally apply the last argument, that rest of the list.
+
 mutual
-  {-# TERMINATING #-}
   ⟦_⟧ᵉ : Env → Set
-  ⟦ xs ⟧ᵉ = ListD ⟦_⟧ᵗ xs
+  ⟦ [] ⟧ᵉ     = ⊤
+  ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 
   ⟦_⟧ᵈ : List ClosureT → Set
-  ⟦ xs ⟧ᵈ = ListD ⟦_⟧ᶜˡ xs
-    where ⟦_⟧ᶜˡ : ClosureT → Set
-          ⟦ mkClosureT from to e ⟧ᶜˡ = Closure from to e
+  ⟦ [] ⟧ᵈ                    = ⊤
+  ⟦ mkClosureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
 
   record Closure (a b : Type) (e : Env) : Set where
     inductive
@@ -307,36 +400,51 @@ mutual
 ⟦ [] ⟧ˢ     = ⊤
 ⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
 
+⟦_⟧ᶜˡ : ClosureT → Set
+⟦ mkClosureT a b e ⟧ᶜˡ = Closure a b e
 
-run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
-                           → Delay ⟦ s' ⟧ˢ i
-run s e d ∅        = now s
-run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
-run s e d (lett >> r) = {!!}
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
-  later
-    λ where
-      .force →
-        do
-          (to , _) ← run tt (consD from fE) (consD ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ dump) code
-          run (to , s) e d r
-run s e d (tc at >> r) with lookupD d at
-… | code = {!!}
-run (b , _) _ (consD _ d) (rtn >> r) = run (b , tt) nilD d r
-run s e d (nil >> r) = {!!}
-run s e d (ldc const >> r) = {!!}
-run s e d (ld at >> r) = run (lookupD e at , s) e d r
-run s e d (flp >> r) = {!!}
-run s e d (cons >> r) = {!!}
-run s e d (head >> r) = {!!}
-run s e d (tail >> r) = {!!}
-run s e d (pair >> r) = {!!}
-run s e d (fst >> r) = {!!}
-run s e d (snd >> r) = {!!}
-run s e d (add >> r) = {!!}
-run s e d (nil? >> r) = {!!}
-run s e d (not >> r) = {!!}
-run s e d (if x x₁ >> r) = {!!}
+lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
+lookupᵉ (x , _) here       = x
+lookupᵉ (_ , xs) (there w) = lookupᵉ xs w
+
+tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
+tailᵈ {mkClosureT _ _ _} {[]} list       = ⋅
+tailᵈ {mkClosureT _ _ _} {_ ∷ _} (_ , t) = t
+
+lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
+lookupᵈ {mkClosureT _ _ _} (x , _) here = x
+lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
+
+--run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
+--                           → Delay ⟦ s' ⟧ˢ i
+--run s e d ∅        = now s
+--run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
+--run (x , s) e d (lett >> r) = run s (x , e) d r
+--run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
+--  later
+--    λ where
+--      .force →
+--        do
+--          (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+--          run (to , s) e d r
+--run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> () >> r)
+--run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = ?
+--run s e d (tc at >> r) = run (lookupᵈ d at , s) e d r
+--run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
+--run s e d (nil >> r) = run ([] , s) e d r
+--run s e d (ldc const >> r) = {!!}
+--run s e d (ld at >> r) = run (lookupᵉ e at , s) e d r
+--run s e d (flp >> r) = {!!}
+--run s e d (cons >> r) = {!!}
+--run s e d (head >> r) = {!!}
+--run s e d (tail >> r) = {!!}
+--run s e d (pair >> r) = {!!}
+--run s e d (fst >> r) = {!!}
+--run s e d (snd >> r) = {!!}
+--run s e d (add >> r) = {!!}
+--run s e d (nil? >> r) = {!!}
+--run s e d (not >> r) = {!!}
+--run s e d (if x x₁ >> r) = {!!}
 
 \end{code}
 
