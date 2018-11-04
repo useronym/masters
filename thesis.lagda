@@ -220,8 +220,8 @@ mutual
     ap   : ∀ {s e e' f from to}
          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
     rap  : ∀ {s e e' f from to}
-         → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
-    ldr   : ∀ {s e f a b e'}
+         → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ [ to ] # [] # f
+    ldr  : ∀ {s e f a b e'}
          → (mkClosureT a b e' ∈ f)
          → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
     rtn  : ∀ {s e e' a b f}
@@ -259,14 +259,6 @@ mutual
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
 
-record Comp : Set where
-  constructor makeComp
-  field
-    {s s'} : Stack
-    {e e'} : Env
-    {f f'} : FunDump
-    c      : ⊢ s # e # f ↝ s' # e' # f'
-
 -- This syntactic sugar makes writing out SECD types easier.
 -- Doesn't play nice with Agda polymorphism?
 withEnv : Env → Type → Type
@@ -278,6 +270,80 @@ withEnv e boolT             = boolT
 withEnv e (closureT a b e') = closureT a b e'
 withEnv e (envT x)          = envT x
 
+-- 2 + 3
+_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+_ =
+    ldc (int (+ 2))
+ >> ldc (int (+ 3))
+ >| add
+
+-- λx.x + 1
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (mkClosureT intT intT [] ∷ f) ↝ [ intT ] # [] # f
+inc =
+    ld here
+ >> ldc (int (+ 1))
+ >> add
+ >| rtn
+
+-- Apply 2 to the above.
+_ : ⊢ [] # [] # [] ↝ [ intT ] # _ # []
+_ =
+    ldf inc
+ >> ldc (int (+ 2))
+ >| ap
+
+-- Partial application test.
+_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+_ =
+     ldf -- First, we construct the curried function.
+       (ldf
+         (ld here >> ld (there here) >> add >| rtn) >| rtn)
+  >> ldc (int (+ 1)) -- Load first argument.
+  >> ap              -- Apply to curried function. Results in a closure.
+  >> ldc (int (+ 2)) -- Load second argument.
+  >| ap              -- Apply to closure.
+
+-- λa.λb.a+b
+-- withEnv test. Below is what withEnv desugars to.
+-- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
+plus : ∀ {s e f} → ⊢ s # e # f ⊳ (withEnv e (intT ⇒ intT ⇒ intT) ∷ s) # e # f
+plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn)
+
+-- Shit getting real.
+--foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
+-- Below is the Agda-polymorphic version which does not typecheck. Something to do with how `withEnv e b` does not normalize further.
+-- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
+-- Explicitly typing out the polymorhic version, however, works:
+foldl : ∀ {a b e f} → ⊢ [] # e # f ⊳ [
+         closureT                            -- We construct a function,
+             (closureT b (closureT a b (b ∷ e)) e) -- which takes the folding function,
+             (closureT b                     -- returning a function which takes acc,
+               (closureT (listT a)           -- returning a function which takes the list,
+                 b                           -- and returns the acc.
+                 (b ∷ (closureT b (closureT a b (b ∷ e)) e) ∷ e))
+               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
+             e
+         ] # e # f
+-- TODO: figure out what's going on here if has time.
+foldl = ldf (ldf (ldf body >| rtn) >| rtn)
+  where
+    body =
+         ld here                   -- Load list.
+      >> nil?                      -- Is it empty?
+      >| if (ld (there here) >| rtn) -- If so, load & return acc.
+          (ld (there (there here))     -- If not, load folding function.
+        >> ld (there here)           -- Load previous acc.
+        >> ap                      -- Partially apply folding function.
+        >> ld here                 -- Load list.
+        >> head                    -- Get the first element.
+        >> ap                      -- Apply, yielding new acc.
+        >> ldr (there (there here))     -- Partially-tail apply the folding function to us.
+        >> ld (there (there here))     -- Load the folding function.
+        >> flp                      -- Apply acc, result in another closure.
+        >> ap                      -- Apply acc, result in another closure.
+        >> ld here                 -- Load list.
+        >> tail                    -- Drop the first element we just processed.
+        >| rap)                      -- Finally apply the last argument, that rest of the list.
 mutual
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ     = ⊤
@@ -330,7 +396,6 @@ run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ �
 run s e d ∅        = now s
 run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
 run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
-run s e d (lett >> r) = {!!}
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later
     λ where
@@ -338,9 +403,10 @@ run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
         do
           (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
           run (to , s) e d r
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = ?
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) = ?
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+run (from , cl , s) e d (rap >> r) = later λ where .force → run (from , cl , ⋅) ⋅ d (ap >> r)
 run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
+run s e d (lett >> r) = {!!}
 run s e d (nil >> r) = {!!}
 run s e d (ldc const >> r) = {!!}
 run s e d (ld at >> r) = {!!}
