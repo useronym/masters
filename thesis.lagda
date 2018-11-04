@@ -1,4 +1,4 @@
-\documentclass[
+\documenldrlass[
   digital, %% This option enables the default options for the
            %% digital version of a document. Replace with `printed`
            %% to enable the default options for the printed version
@@ -87,13 +87,13 @@
 
 \begin{code}
 open import Function using (flip)
-open import Data.Unit using (⊤; tt)
-open import Data.Bool using (Bool) renaming (not to ¬_)
+open import Data.Unit using (⊤) renaming (tt to ⋅)
+open import Data.Bool using (Bool) renaming (not to ¬_; true to tt; false to ff)
 open import Data.Integer using (ℤ; +_; _+_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax)
-open import Data.List using (List; []; [_]; _∷_; map; length; lookup)
+open import Data.List using (List; []; [_]; _∷_; map; length)
 open import Size
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later) renaming (bind to _>>=_)
@@ -123,10 +123,18 @@ data ListD {I : Set} (T : I → Set) : List I → Set where
   nilD  : ListD T []
   consD : ∀ {x xs} → (elem : T x) → (rest : ListD T xs) → ListD T (x ∷ xs)
 
-lookupD : {I : Set} {T : I → Set} {xs : List I} → ListD T xs → (at : Fin (length xs)) → T (lookup xs at)
-lookupD nilD ()
-lookupD (consD elem xs) zero     = elem
-lookupD (consD elem xs) (suc at) = lookupD xs at
+data _∈_ {A : Set} : A → List A → Set where
+  here : ∀ {x xs} → x ∈ (x ∷ xs)
+  there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+
+lookup : ∀ {A x xs} → x ∈ xs → A
+lookup {x = x} here = x
+lookup (there w) = lookup w
+
+--lookupD : {I : Set} {T : I → Set} {xs : List I} → ListD T xs → (at : Fin (length xs)) → T (lookup xs at)
+--lookupD nilD ()
+--lookupD (consD elem xs) zero     = elem
+--lookupD (consD elem xs) (suc at) = lookupD xs at
 
 record Stream (A : Set) : Set where
   coinductive
@@ -190,17 +198,11 @@ data StateKind : Set where
 
 -- A state of our machine.
 record State : Set where
+  constructor _#_#_
   field
-    kind : StateKind
     s : Stack
     e : Env
     f : FunDump
-
-_#_#_ : Stack → Env → FunDump → State
-s # e # f = record { s = s; e = e; f = f; kind = running }
-
-stoppedWith : Type → FunDump → State
-stoppedWith a f = record { s = [ a ]; e = []; f = f; kind = stopped }
 
 -- The typing relation.
 infix 5 ⊢_↝_
@@ -217,10 +219,11 @@ mutual
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e e' f from to}
          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
-    tc   : ∀ {s e f}
-         → (at : Fin (length f))
-         → let cl = lookup f at in
-           ⊢ (mkFrom cl ∷ s) # e # f ⊳ (mkTo cl ∷ s) # e # f
+    rap  : ∀ {s e e' f from to}
+         → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
+    ldr   : ∀ {s e f a b e'}
+         → (mkClosureT a b e' ∈ f)
+         → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
     rtn  : ∀ {s e e' a b f}
          → ⊢ (b ∷ s) # e # (mkClosureT a b e' ∷ f) ⊳ [ b ] # [] # f
     nil  : ∀ {s e f a}
@@ -228,9 +231,9 @@ mutual
     ldc  : ∀ {s e f}
          → (const : Const)
          → ⊢ s # e # f ⊳ (typeof const ∷ s) # e # f
-    ld   : ∀ {s e f}
-         → (at : Fin (length e))
-         → ⊢ s # e # f ⊳ (lookup e at ∷ s) # e # f
+    ld   : ∀ {s e f val}
+         → (val ∈ e)
+         → ⊢ s # e # f ⊳ (val ∷ s) # e # f
     flp  : ∀ {s e f a b}
          → ⊢ (a ∷ b ∷ s) # e # f ⊳ (b ∷ a ∷ s) # e # f
     cons : ∀ {s e f a}
@@ -276,14 +279,13 @@ withEnv e (closureT a b e') = closureT a b e'
 withEnv e (envT x)          = envT x
 
 mutual
-  {-# TERMINATING #-}
   ⟦_⟧ᵉ : Env → Set
-  ⟦ xs ⟧ᵉ = ListD ⟦_⟧ᵗ xs
+  ⟦ [] ⟧ᵉ     = ⊤
+  ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 
   ⟦_⟧ᵈ : List ClosureT → Set
-  ⟦ xs ⟧ᵈ = ListD ⟦_⟧ᶜˡ xs
-    where ⟦_⟧ᶜˡ : ClosureT → Set
-          ⟦ mkClosureT from to e ⟧ᶜˡ = Closure from to e
+  ⟦ [] ⟧ᵈ                    = ⊤
+  ⟦ mkClosureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
 
   record Closure (a b : Type) (e : Env) : Set where
     inductive
@@ -307,25 +309,41 @@ mutual
 ⟦ [] ⟧ˢ     = ⊤
 ⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
 
+⟦_⟧ᶜˡ : ClosureT → Set
+⟦ mkClosureT a b e ⟧ᶜˡ = Closure a b e
+
+lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
+lookupᵉ (x , _) here       = x
+lookupᵉ (_ , xs) (there w) = lookupᵉ xs w
+
+tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
+tailᵈ {mkClosureT _ _ _} {[]} list       = ⋅
+tailᵈ {mkClosureT _ _ _} {_ ∷ _} (_ , t) = t
+
+lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
+lookupᵈ {mkClosureT _ _ _} (x , _) here = x
+lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
+
 
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
 run s e d ∅        = now s
 run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
+run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
 run s e d (lett >> r) = {!!}
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later
     λ where
       .force →
         do
-          (to , _) ← run tt (consD from fE) (consD ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ dump) code
+          (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
           run (to , s) e d r
-run s e d (tc at >> r) with lookupD d at
-… | code = {!!}
-run (b , _) _ (consD _ d) (rtn >> r) = run (b , tt) nilD d r
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = ?
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) = ?
+run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
 run s e d (nil >> r) = {!!}
 run s e d (ldc const >> r) = {!!}
-run s e d (ld at >> r) = run (lookupD e at , s) e d r
+run s e d (ld at >> r) = {!!}
 run s e d (flp >> r) = {!!}
 run s e d (cons >> r) = {!!}
 run s e d (head >> r) = {!!}
@@ -336,7 +354,9 @@ run s e d (snd >> r) = {!!}
 run s e d (add >> r) = {!!}
 run s e d (nil? >> r) = {!!}
 run s e d (not >> r) = {!!}
-run s e d (if x x₁ >> r) = {!!}
+run (bool , s) e d (if c₁ c₂ >> r) with bool
+… | tt = later λ where .force → run s e d (concatenate c₁ r)
+… | ff = later λ where .force → run s e d (concatenate c₂ r)
 
 \end{code}
 
