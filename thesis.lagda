@@ -220,7 +220,7 @@ mutual
     ap   : ∀ {s e e' f from to}
          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
     rap  : ∀ {s e e' f from to}
-         → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ [ to ] # [] # f
+         → ⊢ (from ∷ closureT from to e' ∷ s) # e # (mkClosureT from to e' ∷ f) ⊳ [ to ] # [] # f
     ldr  : ∀ {s e f a b e'}
          → (mkClosureT a b e' ∈ f)
          → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
@@ -339,11 +339,11 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
         >> ap                      -- Apply, yielding new acc.
         >> ldr (there (there here))     -- Partially-tail apply the folding function to us.
         >> ld (there (there here))     -- Load the folding function.
-        >> flp                      -- Apply acc, result in another closure.
-        >> ap                      -- Apply acc, result in another closure.
-        >> ld here                 -- Load list.
-        >> tail                    -- Drop the first element we just processed.
-        >| rap)                      -- Finally apply the last argument, that rest of the list.
+        >> ap >> flp >> ap >> ld here >> tail >| rap)                      -- Apply acc, result in another closure.
+--        >> ap                      -- Apply acc, result in another closure.
+--        >> ld here                 -- Load list.
+--        >> tail                    -- Drop the first element we just processed.
+--        >| rap)                      -- Finally apply the last argument, that rest of the list.
 mutual
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ     = ⊤
@@ -404,7 +404,7 @@ run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
           (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
           run (to , s) e d r
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-run (from , cl , s) e d (rap >> r) = later λ where .force → run (from , cl , ⋅) ⋅ d (ap >> r)
+run (from , cl , s) e d (rap >> r) = later λ where .force → run (from , cl , ⋅) ⋅ (proj₂ d) (ap >> r)
 run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
 run s e d (lett >> r) = {!!}
 run s e d (nil >> r) = {!!}
