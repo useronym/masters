@@ -1,0 +1,27 @@
+-- if instruction / closure type & environment
+15:51:17 	<pgiarrusso>	akr: this reminds me of the constraints from the JVM bytecode verifier about if: I think they’re similar, except for subtyping
+15:51:46 	<pgiarrusso>	akr: I can think of many works on typed compilation with tricky issues
+15:51:58 	<pgiarrusso>	E.g. typing closure conversion requires existentials
+15:52:13 	<pgiarrusso>	Typing defunctionalization requires something similar to GADTs
+15:53:08 	<pgiarrusso>	I’ve never heard about SECD, but since it uses closures something similar might appear, tho maybe not explicitly, for the type of the environment
+15:59:42 	<pgiarrusso>	akr: it seems your handling of functions *does* have this problem. Take a List (Int -> String), with functions with different environments, doesn’t it become an heterogenous list?
+16:00:13 	<pgiarrusso>	I’d think you want to have an hom. list where each element hides the environment type
+16:00:38 	<pgiarrusso>	Hopefully you can cheat by keeping a primitive type for functions
+16:02:40 	<pgiarrusso>	akr: ^^
+16:03:55 	<pgiarrusso>	akr: I’ve thought a while about this because it comes up in a paper we’re writing, but you can check “typed closure conversion” (from Minamide et al.?) for details
+16:05:56 	<pgiarrusso>	On your original Q on if: sometimes you’ll need instructions to modify the local frame to make them match, or an “undefined” type for stack entries, which arises from merging different ones and cannot be used, but I don’t see the need here I guess?
+16:12:14 	<pgiarrusso>	akr: correction: because of at least lett, you can end up with different intermediate results, so something must be done. You could treat if as taking two thunks, and then the function call mechanism would take care of everything
+16:14:08 	<pgiarrusso>	akr: also, most immediately, why does if return ⊢ (x ∷ s) # e # f ↝ s' # e' # f' ? Shouldn’t x be boolT instead?
+16:14:38 	<pgiarrusso>	back to if and thunks: you can also implement what you need directly.
+16:15:02 	<pgiarrusso>	BTW, it seems you’re writing an if statement. I’d expect you want an if expression instead?
+16:15:39 	<pgiarrusso>	akr: `if: bool -> (() -> T) -> (() -> T) -> T`
+
+-- coinduction sizes
+20:53:28 	<{AS}>	So quantify over all sizes I
+20:53:35 	<{AS}>	sizes i
+20:53:53 	<{AS}>	Then it can see the size can get smaller when you delay
+20:54:45 	<{AS}>	It can’t show that inf is smaller than j
+20:54:32 	<{AS}>	I just saw it now because I didn’t type check it
+
+-- LHS highlight
+14:55:31 	<gallais>	akr: do you mean that a LHS is highlighted? It means that the clause won't hold definitionally (because a pattern that comes before it requires a split on a variable which is not splitted upon here)

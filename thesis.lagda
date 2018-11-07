@@ -93,7 +93,7 @@ open import Data.Integer using (ℤ; +_; _+_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax)
-open import Data.List using (List; []; [_]; _∷_; map; length)
+open import Data.List using (List; []; [_]; _∷_; null; map; length)
 open import Size
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later) renaming (bind to _>>=_)
@@ -390,36 +390,40 @@ lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
 lookupᵈ {mkClosureT _ _ _} (x , _) here = x
 lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
 
-
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
-run s e d ∅        = now s
+run s e d ∅ = now s
 run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
-run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
+run s e d (ldr at >> r)   = run (lookupᵈ d at , s) e d r
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
-  later
-    λ where
-      .force →
-        do
-          (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-          run (to , s) e d r
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) = later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-run (from , cl , s) e d (rap >> r) = later λ where .force → run (from , cl , ⋅) ⋅ (proj₂ d) (ap >> r)
+  later λ where .force → do
+                           (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+                           run (to , s) e d r
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
+  later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
+  later λ where .force → run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) ⋅ (proj₂ d) (ap >> x >> r)
 run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
-run s e d (lett >> r) = {!!}
-run s e d (nil >> r) = {!!}
-run s e d (ldc const >> r) = {!!}
-run s e d (ld at >> r) = {!!}
-run s e d (flp >> r) = {!!}
-run s e d (cons >> r) = {!!}
-run s e d (head >> r) = {!!}
-run s e d (tail >> r) = {!!}
-run s e d (pair >> r) = {!!}
-run s e d (fst >> r) = {!!}
-run s e d (snd >> r) = {!!}
-run s e d (add >> r) = {!!}
-run s e d (nil? >> r) = {!!}
-run s e d (not >> r) = {!!}
+run (x , s) e d (lett >> r)      = run s (x , e) d r
+run s e d (nil >> r)             = run ([] , s) e d r
+run s e d (ldc const >> r)       = run (makeConst const , s) e d r
+  where makeConst : (c : Const) → ⟦ typeof c ⟧ᵗ
+        makeConst true    = tt
+        makeConst false   = ff
+        makeConst (int x) = x
+run s e d (ld at >> r)           = run (lookupᵉ e at , s) e d r
+run (x , y , s) e d (flp >> r)   = run (y , x , s) e d r
+run (x , xs , s) e d (cons >> r) = run (x ∷ xs , s) e d r
+run ([] , s) e d (head >> r)     = now {!!}
+run (x ∷ _ , s) e d (head >> r)  = run (x , s) e d r
+run ([] , s) e d (tail >> r)     = {!!}
+run (x ∷ xs , s) e d (tail >> r) = run (xs , s) e d r
+run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
+run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
+run ((_ , y) , s) e d (snd >> r) = run (y , s) e d r
+run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
+run (xs , s) e d (nil? >> r)     = run (null xs , s) e d r
+run (x , s) e d (not >> r)       = run (¬ x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (concatenate c₁ r)
 … | ff = later λ where .force → run s e d (concatenate c₂ r)
