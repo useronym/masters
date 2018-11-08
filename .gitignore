@@ -1,5 +1,4 @@
-auto/
-_minted-thesis/
+latex/
 *.aux
 *.bcf
 *.dvi
@@ -10,3 +9,4 @@ _minted-thesis/
 *.out
 *.run.xml
 *.toc
+*.agdai
