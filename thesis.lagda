@@ -97,7 +97,7 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax
 open import Data.List using (List; []; [_]; _∷_; null; map; length)
 open import Size
 open import Codata.Thunk using (force)
-open import Codata.Delay using (Delay; now; later; runFor) renaming (bind to _>>=_)
+open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
 
 
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
@@ -111,6 +111,7 @@ a >| b = a >> b >> ∅
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 ∅ >+> r = r
 (x >> l) >+> r = x >> (l >+> r)
+infixr 4 _>+>_
 
 snoc : ∀ {A R} {a b c : A} → Path R a b → R b c → Path R a c
 snoc ∅ e = e >> ∅
@@ -247,9 +248,9 @@ mutual
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
 
-loadList⁺ : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
-loadList⁺ [] = nil >> ∅
-loadList⁺ (x ∷ xs) = (loadList⁺ xs) >+> (ldc (int (+ x)) >| cons)
+loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
+loadList [] = nil >> ∅
+loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
 
 -- This syntactic sugar makes writing out SECD types easier.
 -- Doesn't play nice with Agda polymorphism?
@@ -342,7 +343,7 @@ mutual
   ⟦ [] ⟧ᵉ     = ⊤
   ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 
-  ⟦_⟧ᵈ : List ClosureT → Set
+  ⟦_⟧ᵈ : FunDump → Set
   ⟦ [] ⟧ᵈ                    = ⊤
   ⟦ mkClosureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
 
@@ -407,9 +408,9 @@ run s e d (ldc const >> r)       = run (makeConst const , s) e d r
 run s e d (ld at >> r)           = run (lookupᵉ e at , s) e d r
 run (x , y , s) e d (flp >> r)   = run (y , x , s) e d r
 run (x , xs , s) e d (cons >> r) = run (x ∷ xs , s) e d r
-run ([] , s) e d (head >> r)     = now {!!}
+run ([] , s) e d (head >> r)     = never
 run (x ∷ _ , s) e d (head >> r)  = run (x , s) e d r
-run ([] , s) e d (tail >> r)     = {!!}
+run ([] , s) e d (tail >> r)     = never
 run (x ∷ xs , s) e d (tail >> r) = run (xs , s) e d r
 run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
 run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
@@ -446,11 +447,49 @@ foldTest =
   >> ap
   >> ldc (int (+ 0))
   >> ap
-  >> (loadList⁺ (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
-  >+> (ap >> ∅)
+  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
+  >+> ap
+  >> ∅
 
 _ : runℕ foldTest 29 ≡ just (+ 10)
 _ = refl
+
+
+Ctx = List Type
+
+infix 2 _×_⊢_
+data _×_⊢_ : Ctx → Ctx → Type → Set where
+  var : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
+  ƛ_  : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
+  _$_ : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
+  rec : ∀ {Ψ Γ α β} → (α ⇒ β) ∈ Ψ → Ψ × Γ ⊢ α ⇒ β
+  if_then_else_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ boolT → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α
+  _==_ : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ boolT
+  #_ : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
+  #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
+  mul : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
+  sub : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
+infixl 2 _$_
+infix 5 _==_
+
+
+fac : [] × [] ⊢ (intT ⇒ intT)
+fac = ƛ (if (var here == #⁺ 1)
+          then #⁺ 1
+          else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
+                    $ var here))
+
+compile : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → ⊢ [] # Γ # {!Ψ!} ⊳ [ α ] # Γ # {!!}
+compile (var x) = {!!}
+compile (ƛ t) = {!!}
+compile (t $ t₁) = {!!}
+compile (rec x) = {!!}
+compile (if t then t₁ else t₂) = {!!}
+compile (t == t₁) = {!!}
+compile (# x) = {!!}
+compile (#⁺ x) = {!!}
+compile mul = {!!}
+compile sub = {!!}
 
 \end{code}
 
