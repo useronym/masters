@@ -88,6 +88,7 @@
 \begin{code}
 open import Function using (flip)
 open import Data.Unit using (⊤) renaming (tt to ⋅)
+open import Data.Empty
 open import Data.Bool using (Bool) renaming (not to ¬_; true to tt; false to ff)
 open import Data.Nat using (ℕ)
 open import Data.Integer using (ℤ; +_; _+_)
@@ -183,7 +184,7 @@ mkEnv : ClosureT → Env
 mkEnv (mkClosureT _ _ env) = env
 
 -- This is pretty much the call stack, allowing us to make recursive calls.
-FunDump = List ClosureT
+FunDump = List Type
 
 -- A state of our machine.
 record State : Set where
@@ -202,19 +203,19 @@ mutual
 
   data ⊢_⊳_ : State → State → Set where
     ldf  : ∀ {s e f from to}
-         → (⊢ [] # (from ∷ e) # (mkClosureT from to e ∷ f) ↝ [ to ] # [] # f)
+         → (⊢ [] # (from ∷ e) # (closureT from to e ∷ f) ↝ [ to ] # [] # f)
          → ⊢ s # e # f ⊳ (closureT from to e ∷ s) # e # f
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e e' f from to}
          → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
     rap  : ∀ {s e e' f from to}
-         → ⊢ (from ∷ closureT from to e' ∷ s) # e # (mkClosureT from to e' ∷ f) ⊳ [ to ] # [] # f
+         → ⊢ (from ∷ closureT from to e' ∷ s) # e # (closureT from to e' ∷ f) ⊳ [ to ] # [] # f
     ldr  : ∀ {s e f a b e'}
-         → (mkClosureT a b e' ∈ f)
+         → (closureT a b e' ∈ f)
          → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
     rtn  : ∀ {s e e' a b f}
-         → ⊢ (b ∷ s) # e # (mkClosureT a b e' ∷ f) ⊳ [ b ] # [] # f
+         → ⊢ (b ∷ s) # e # (closureT a b e' ∷ f) ⊳ [ b ] # [] # f
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     ldc  : ∀ {s e f}
@@ -271,7 +272,7 @@ withEnv e (envT x)          = envT x
  >| add
 
 -- λx.x + 1
-inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (mkClosureT intT intT [] ∷ f) ↝ [ intT ] # [] # f
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (closureT intT intT [] ∷ f) ↝ [ intT ] # [] # f
 inc =
     ld here
  >> ldc (int (+ 1))
@@ -345,14 +346,20 @@ mutual
 
   ⟦_⟧ᵈ : FunDump → Set
   ⟦ [] ⟧ᵈ                    = ⊤
-  ⟦ mkClosureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
+  ⟦ closureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
+  ⟦ intT ∷ xs ⟧ᵈ = ⊥
+  ⟦ boolT ∷ xs ⟧ᵈ = ⊥
+  ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
+  ⟦ funT x x₁ ∷ xs ⟧ᵈ = ⊥
+  ⟦ envT x ∷ xs ⟧ᵈ = ⊥
+  ⟦ listT x ∷ xs ⟧ᵈ = ⊥
 
   record Closure (a b : Type) (e : Env) : Set where
     inductive
     constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
     field
       {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (mkClosureT a b e ∷ f) ↝ [ b ] # [] # f
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (closureT a b e ∷ f) ↝ [ b ] # [] # f
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
@@ -377,18 +384,27 @@ lookupᵉ (x , _) here       = x
 lookupᵉ (_ , xs) (there w) = lookupᵉ xs w
 
 tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
-tailᵈ {mkClosureT _ _ _} {[]} list       = ⋅
-tailᵈ {mkClosureT _ _ _} {_ ∷ _} (_ , t) = t
+tailᵈ {intT} ()
+tailᵈ {boolT} ()
+tailᵈ {pairT x x₁} ()
+tailᵈ {funT x x₁} ()
+tailᵈ {closureT a b e} (_ , xs) = xs
+tailᵈ {envT x} ()
+tailᵈ {listT x} ()
 
-lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
-lookupᵈ {mkClosureT _ _ _} (x , _) here = x
-lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
+--lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
+--lookupᵈ {mkClosureT _ _ _} (x , _) here = x
+--lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
+
+lookupᵈ : ∀ {a b e f} → ⟦ f ⟧ᵈ → closureT a b e ∈ f → Closure a b e
+lookupᵈ (x , _) here = x
+lookupᵈ f (there w) = lookupᵈ (tailᵈ f) w
 
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
 run s e d ∅ = now s
 run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
-run s e d (ldr at >> r)   = run (lookupᵈ d at , s) e d r
+run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later λ where .force → do
                            (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
@@ -479,17 +495,8 @@ fac = ƛ (if (var here == #⁺ 1)
           else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
                     $ var here))
 
-compile : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → ⊢ [] # Γ # {!Ψ!} ⊳ [ α ] # Γ # {!!}
-compile (var x) = {!!}
-compile (ƛ t) = {!!}
-compile (t $ t₁) = {!!}
-compile (rec x) = {!!}
-compile (if t then t₁ else t₂) = {!!}
-compile (t == t₁) = {!!}
-compile (# x) = {!!}
-compile (#⁺ x) = {!!}
-compile mul = {!!}
-compile sub = {!!}
+compile : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → ⊢ [] # Γ # Ψ ⊳ [ α ] # Γ # Ψ
+compile t = {!!}
 
 \end{code}
 
