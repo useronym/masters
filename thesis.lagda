@@ -89,6 +89,7 @@
 open import Function using (flip)
 open import Data.Unit using (⊤) renaming (tt to ⋅)
 open import Data.Bool using (Bool) renaming (not to ¬_; true to tt; false to ff)
+open import Data.Nat using (ℕ)
 open import Data.Integer using (ℤ; +_; _+_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Fin using (Fin; zero; suc)
@@ -96,7 +97,7 @@ open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax
 open import Data.List using (List; []; [_]; _∷_; null; map; length)
 open import Size
 open import Codata.Thunk using (force)
-open import Codata.Delay using (Delay; now; later) renaming (bind to _>>=_)
+open import Codata.Delay using (Delay; now; later; runFor) renaming (bind to _>>=_)
 
 
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
@@ -107,9 +108,9 @@ infixr 5 _>>_
 _>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
 a >| b = a >> b >> ∅
 
-concatenate : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
-concatenate ∅ r = r
-concatenate (x >> l) r = x >> (concatenate l r)
+_>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
+∅ >+> r = r
+(x >> l) >+> r = x >> (l >+> r)
 
 snoc : ∀ {A R} {a b c : A} → Path R a b → R b c → Path R a c
 snoc ∅ e = e >> ∅
@@ -136,16 +137,6 @@ lookup (there w) = lookup w
 --lookupD (consD elem xs) zero     = elem
 --lookupD (consD elem xs) (suc at) = lookupD xs at
 
-record Stream (A : Set) : Set where
-  coinductive
-  field
-    cohead : A
-    cotail : Stream A
-open Stream public
-
-repeat : ∀ {A} → A → Stream A
-cohead (repeat a) = a
-cotail (repeat a) = repeat a
 
 -- Type of atomic constants. These can be loaded directly from a single instruction.
 data Const : Set where
@@ -259,6 +250,10 @@ mutual
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
 
+loadList⁺ : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
+loadList⁺ [] = nil >> ∅
+loadList⁺ (x ∷ xs) = (loadList⁺ xs) >+> (ldc (int (+ x)) >| cons)
+
 -- This syntactic sugar makes writing out SECD types easier.
 -- Doesn't play nice with Agda polymorphism?
 withEnv : Env → Type → Type
@@ -271,8 +266,8 @@ withEnv e (closureT a b e') = closureT a b e'
 withEnv e (envT x)          = envT x
 
 -- 2 + 3
-_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
-_ =
+2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+2+3 =
     ldc (int (+ 2))
  >> ldc (int (+ 3))
  >| add
@@ -286,15 +281,15 @@ inc =
  >| rtn
 
 -- Apply 2 to the above.
-_ : ⊢ [] # [] # [] ↝ [ intT ] # _ # []
-_ =
+inc2 : ⊢ [] # [] # [] ↝ [ intT ] # _ # []
+inc2 =
     ldf inc
  >> ldc (int (+ 2))
  >| ap
 
 -- Partial application test.
-_ : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
-_ =
+λTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+λTest =
      ldf -- First, we construct the curried function.
        (ldf
          (ld here >> ld (there here) >> add >| rtn) >| rtn)
@@ -310,20 +305,20 @@ plus : ∀ {s e f} → ⊢ s # e # f ⊳ (withEnv e (intT ⇒ intT ⇒ intT) ∷
 plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn)
 
 -- Shit getting real.
---foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
+foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
 -- Below is the Agda-polymorphic version which does not typecheck. Something to do with how `withEnv e b` does not normalize further.
 -- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
 -- Explicitly typing out the polymorhic version, however, works:
-foldl : ∀ {a b e f} → ⊢ [] # e # f ⊳ [
-         closureT                            -- We construct a function,
-             (closureT b (closureT a b (b ∷ e)) e) -- which takes the folding function,
-             (closureT b                     -- returning a function which takes acc,
-               (closureT (listT a)           -- returning a function which takes the list,
-                 b                           -- and returns the acc.
-                 (b ∷ (closureT b (closureT a b (b ∷ e)) e) ∷ e))
-               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
-             e
-         ] # e # f
+--foldl : ∀ {a b e f} → ⊢ [] # e # f ⊳ [
+--         closureT                            -- We construct a function,
+--             (closureT b (closureT a b (b ∷ e)) e) -- which takes the folding function,
+--             (closureT b                     -- returning a function which takes acc,
+--               (closureT (listT a)           -- returning a function which takes the list,
+--                 b                           -- and returns the acc.
+--                 (b ∷ (closureT b (closureT a b (b ∷ e)) e) ∷ e))
+--               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
+--             e
+--         ] # e # f
 -- TODO: figure out what's going on here if has time.
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
   where
@@ -344,6 +339,7 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
 --        >> ld here                 -- Load list.
 --        >> tail                    -- Drop the first element we just processed.
 --        >| rap)                      -- Finally apply the last argument, that rest of the list.
+
 mutual
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ     = ⊤
@@ -425,8 +421,39 @@ run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
 run (xs , s) e d (nil? >> r)     = run (null xs , s) e d r
 run (x , s) e d (not >> r)       = run (¬ x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
-… | tt = later λ where .force → run s e d (concatenate c₁ r)
-… | ff = later λ where .force → run s e d (concatenate c₂ r)
+… | tt = later λ where .force → run s e d (c₁ >+> r)
+… | ff = later λ where .force → run s e d (c₂ >+> r)
+
+runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # [] → ℕ → Maybe ⟦ x ⟧ᵗ
+runℕ c n = runFor n
+  do
+    (x , _) ← run ⋅ ⋅ ⋅ c
+    now x
+
+
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+
+_ : runℕ 2+3 1 ≡ just (+ 5)
+_ = refl
+
+_ : runℕ inc2 2 ≡ just (+ 3)
+_ = refl
+
+_ : runℕ λTest 3 ≡ just (+ 3)
+_ = refl
+
+foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+foldTest =
+     foldl
+  >> plus
+  >> ap
+  >> ldc (int (+ 0))
+  >> ap
+  >> (loadList⁺ (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
+  >+> (ap >> ∅)
+
+_ : runℕ foldTest 29 ≡ just (+ 10)
+_ = refl
 
 \end{code}
 
