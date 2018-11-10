@@ -189,19 +189,19 @@ mutual
 
   data ⊢_⊳_ : State → State → Set where
     ldf  : ∀ {s e f from to}
-         → (⊢ [] # (from ∷ e) # (funT from to ∷ f) ↝ [ to ] # [] # f)
+         → (⊢ [] # (from ∷ e) # (funT from to ∷ f) ↝ [ to ] # (from ∷ e) # (funT from to ∷ f))
          → ⊢ s # e # f ⊳ (funT from to ∷ s) # e # f
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e f from to}
          → ⊢ (from ∷ funT from to ∷ s) # e # f ⊳ (to ∷ s) # e # f
     rap  : ∀ {s e f from to}
-         → ⊢ (from ∷ funT from to ∷ s) # e # (funT from to ∷ f) ⊳ [ to ] # [] # f
+         → ⊢ (from ∷ funT from to ∷ s) # e # (funT from to ∷ f) ⊳ [ to ] # e # (funT from to ∷ f)
     ldr  : ∀ {s e f a b}
          → (funT a b ∈ f)
          → ⊢ s # e # f ⊳ (funT a b ∷ s) # e # f
     rtn  : ∀ {s e a b f}
-         → ⊢ (b ∷ s) # e # (funT a b ∷ f) ⊳ [ b ] # [] # f
+         → ⊢ (b ∷ s) # e # (funT a b ∷ f) ⊳ [ b ] # e # (funT a b ∷ f)
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     ldc  : ∀ {s e f}
@@ -257,7 +257,7 @@ loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
  >| add
 
 -- λx.x + 1
-inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (funT intT intT ∷ f) ↝ [ intT ] # [] # f
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (funT intT intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (funT intT intT ∷ f)
 inc =
     ld here
  >> ldc (int (+ 1))
@@ -265,7 +265,7 @@ inc =
  >| rtn
 
 -- Apply 2 to the above.
-inc2 : ⊢ [] # [] # [] ↝ [ intT ] # _ # []
+inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
     ldf inc
  >> ldc (int (+ 2))
@@ -343,7 +343,7 @@ mutual
     field
       {e} : Env
       {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (funT a b ∷ f) ↝ [ b ] # [] # f
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (funT a b ∷ f) ↝ [ b ] # (a ∷ e) # (funT a b ∷ f)
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
@@ -389,8 +389,8 @@ run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
   later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
 run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
-  later λ where .force → run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) ⋅ (proj₂ d) (ap >> x >> r)
-run (b , _) _ (_ , d) (rtn >> r) = run (b , ⋅) ⋅ d r
+  later λ where .force → run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
+run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
 run (x , s) e d (lett >> r)      = run s (x , e) d r
 run s e d (nil >> r)             = run ([] , s) e d r
 run s e d (ldc const >> r)       = run (makeConst const , s) e d r
@@ -473,17 +473,17 @@ fac = ƛ if (var here == #⁺ 1)
           else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
                     $ var here)
 
---compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
---compile (var x) = {!!}
---compile (ƛ t) = {!!}
---compile (f $ x) = compile f >+> compile x >+> {!!}
---compile (rec x) = {!!}
---compile (if t then t₁ else t₂) = {!!}
---compile (t == t₁) = {!!}
---compile (# x) = {!!}
---compile (#⁺ x) = {!!}
---compile mul = {!!}
---compile sub = {!!}
+compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
+compile (var x) = ld x >> ∅
+compile (ƛ t) = ldf (compile t) >> ∅
+compile (f $ x) = compile f >+> compile x >+> ap >> ∅
+compile (rec x) = ldr x >> ∅
+compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
+compile (a == b) = {!!}
+compile (# x) = {!!}
+compile (#⁺ x) = {!!}
+compile mul = {!!}
+compile sub = {!!}
 
 \end{code}
 
