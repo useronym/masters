@@ -154,7 +154,6 @@ mutual
     intT boolT : Type
     pairT : Type → Type → Type
     funT : Type → Type → Type
-    closureT : Type → Type → Env → Type
     listT : Type → Type
 
 _⇒_ : Type → Type → Type
@@ -190,19 +189,19 @@ mutual
 
   data ⊢_⊳_ : State → State → Set where
     ldf  : ∀ {s e f from to}
-         → (⊢ [] # (from ∷ e) # (closureT from to e ∷ f) ↝ [ to ] # [] # f)
-         → ⊢ s # e # f ⊳ (closureT from to e ∷ s) # e # f
+         → (⊢ [] # (from ∷ e) # (funT from to ∷ f) ↝ [ to ] # [] # f)
+         → ⊢ s # e # f ⊳ (funT from to ∷ s) # e # f
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
-    ap   : ∀ {s e e' f from to}
-         → ⊢ (from ∷ closureT from to e' ∷ s) # e # f ⊳ (to ∷ s) # e # f
-    rap  : ∀ {s e e' f from to}
-         → ⊢ (from ∷ closureT from to e' ∷ s) # e # (closureT from to e' ∷ f) ⊳ [ to ] # [] # f
-    ldr  : ∀ {s e f a b e'}
-         → (closureT a b e' ∈ f)
-         → ⊢ s # e # f ⊳ (closureT a b e' ∷ s) # e # f
-    rtn  : ∀ {s e e' a b f}
-         → ⊢ (b ∷ s) # e # (closureT a b e' ∷ f) ⊳ [ b ] # [] # f
+    ap   : ∀ {s e f from to}
+         → ⊢ (from ∷ funT from to ∷ s) # e # f ⊳ (to ∷ s) # e # f
+    rap  : ∀ {s e f from to}
+         → ⊢ (from ∷ funT from to ∷ s) # e # (funT from to ∷ f) ⊳ [ to ] # [] # f
+    ldr  : ∀ {s e f a b}
+         → (funT a b ∈ f)
+         → ⊢ s # e # f ⊳ (funT a b ∷ s) # e # f
+    rtn  : ∀ {s e a b f}
+         → ⊢ (b ∷ s) # e # (funT a b ∷ f) ⊳ [ b ] # [] # f
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     ldc  : ∀ {s e f}
@@ -242,13 +241,13 @@ loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
 
 -- This syntactic sugar makes writing out SECD types easier.
 -- Doesn't play nice with Agda polymorphism?
-withEnv : Env → Type → Type
-withEnv e (pairT t u)       = pairT (withEnv e t) (withEnv e u)
-withEnv e (funT a b)        = let aWithE = (withEnv e a) in closureT aWithE (withEnv (aWithE ∷ e) b) e
-withEnv e (listT t)         = listT (withEnv e t)
-withEnv e intT              = intT
-withEnv e boolT             = boolT
-withEnv e (closureT a b e') = closureT a b e'
+--withEnv : Env → Type → Type
+--withEnv e (pairT t u)       = pairT (withEnv e t) (withEnv e u)
+--withEnv e (funT a b)        = let aWithE = (withEnv e a) in closureT aWithE (withEnv (aWithE ∷ e) b) e
+--withEnv e (listT t)         = listT (withEnv e t)
+--withEnv e intT              = intT
+--withEnv e boolT             = boolT
+--withEnv e (closureT a b e') = closureT a b e'
 
 -- 2 + 3
 2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
@@ -258,7 +257,7 @@ withEnv e (closureT a b e') = closureT a b e'
  >| add
 
 -- λx.x + 1
-inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (closureT intT intT [] ∷ f) ↝ [ intT ] # [] # f
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (funT intT intT ∷ f) ↝ [ intT ] # [] # f
 inc =
     ld here
  >> ldc (int (+ 1))
@@ -286,11 +285,11 @@ inc2 =
 -- λa.λb.a+b
 -- withEnv test. Below is what withEnv desugars to.
 -- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
-plus : ∀ {s e f} → ⊢ s # e # f ⊳ (withEnv e (intT ⇒ intT ⇒ intT) ∷ s) # e # f
+plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn)
 
 -- Shit getting real.
-foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ withEnv e ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
+foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
 -- Below is the Agda-polymorphic version which does not typecheck. Something to do with how `withEnv e b` does not normalize further.
 -- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
 -- Explicitly typing out the polymorhic version, however, works:
@@ -332,19 +331,19 @@ mutual
 
   ⟦_⟧ᵈ : FunDump → Set
   ⟦ [] ⟧ᵈ                    = ⊤
-  ⟦ closureT a b e ∷ xs ⟧ᵈ = (Closure a b e) × ⟦ xs ⟧ᵈ
   ⟦ intT ∷ xs ⟧ᵈ = ⊥
   ⟦ boolT ∷ xs ⟧ᵈ = ⊥
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
-  ⟦ funT x x₁ ∷ xs ⟧ᵈ = ⊥
+  ⟦ funT a b ∷ xs ⟧ᵈ = Closure a b × ⟦ xs ⟧ᵈ
   ⟦ listT x ∷ xs ⟧ᵈ = ⊥
 
-  record Closure (a b : Type) (e : Env) : Set where
+  record Closure (a b : Type) : Set where
     inductive
     constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
     field
+      {e} : Env
       {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (closureT a b e ∷ f) ↝ [ b ] # [] # f
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (funT a b ∷ f) ↝ [ b ] # [] # f
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
@@ -352,8 +351,7 @@ mutual
   ⟦ intT ⟧ᵗ           = ℤ
   ⟦ boolT ⟧ᵗ          = Bool
   ⟦ pairT t₁ t₂ ⟧ᵗ    = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
-  ⟦ funT a b ⟧ᵗ       = ⊤
-  ⟦ closureT a b e ⟧ᵗ = Closure a b e
+  ⟦ funT a b ⟧ᵗ       = Closure a b
   ⟦ listT t ⟧ᵗ        = List ⟦ t ⟧ᵗ
 
 ⟦_⟧ˢ : Stack → Set
@@ -368,15 +366,14 @@ tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
 tailᵈ {intT} ()
 tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
-tailᵈ {funT x x₁} ()
-tailᵈ {closureT a b e} (_ , xs) = xs
+tailᵈ {funT a b} (_ , xs) = xs
 tailᵈ {listT x} ()
 
 --lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
 --lookupᵈ {mkClosureT _ _ _} (x , _) here = x
 --lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
 
-lookupᵈ : ∀ {a b e f} → ⟦ f ⟧ᵈ → closureT a b e ∈ f → Closure a b e
+lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → funT a b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
 lookupᵈ f (there w) = lookupᵈ (tailᵈ f) w
 
