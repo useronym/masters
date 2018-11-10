@@ -170,18 +170,6 @@ typeof (int x) = intT
 -- Stack stores the types of values on the machine's stack.
 Stack = List Type
 
--- Special kind of closure we use to allow recursive calls.
-data ClosureT : Set where
-  mkClosureT : Type → Type → Env → ClosureT
-
--- Boilerplate.
-mkFrom : ClosureT → Type
-mkFrom (mkClosureT from _ _) = from
-mkTo : ClosureT → Type
-mkTo (mkClosureT _ to _) = to
-mkEnv : ClosureT → Env
-mkEnv (mkClosureT _ _ env) = env
-
 -- This is pretty much the call stack, allowing us to make recursive calls.
 FunDump = List Type
 
@@ -371,9 +359,6 @@ mutual
 ⟦_⟧ˢ : Stack → Set
 ⟦ [] ⟧ˢ     = ⊤
 ⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
-
-⟦_⟧ᶜˡ : ClosureT → Set
-⟦ mkClosureT a b e ⟧ᶜˡ = Closure a b e
 
 lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
 lookupᵉ (x , _) here       = x
