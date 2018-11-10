@@ -485,18 +485,28 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
   #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
   mul : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
   sub : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
-infixl 2 _$_
+infixr 2 ƛ_
+infixl 3 _$_
 infix 5 _==_
 
 
 fac : [] × [] ⊢ (intT ⇒ intT)
-fac = ƛ (if (var here == #⁺ 1)
+fac = ƛ if (var here == #⁺ 1)
           then #⁺ 1
           else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
-                    $ var here))
+                    $ var here)
 
-compile : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → ⊢ [] # Γ # Ψ ⊳ [ α ] # Γ # Ψ
-compile t = {!!}
+--compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
+--compile (var x) = {!!}
+--compile (ƛ t) = {!!}
+--compile (f $ x) = compile f >+> compile x >+> {!!}
+--compile (rec x) = {!!}
+--compile (if t then t₁ else t₂) = {!!}
+--compile (t == t₁) = {!!}
+--compile (# x) = {!!}
+--compile (#⁺ x) = {!!}
+--compile mul = {!!}
+--compile sub = {!!}
 
 \end{code}
 
