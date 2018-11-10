@@ -155,7 +155,6 @@ mutual
     pairT : Type → Type → Type
     funT : Type → Type → Type
     closureT : Type → Type → Env → Type
-    envT : Env → Type
     listT : Type → Type
 
 _⇒_ : Type → Type → Type
@@ -262,7 +261,6 @@ withEnv e (listT t)         = listT (withEnv e t)
 withEnv e intT              = intT
 withEnv e boolT             = boolT
 withEnv e (closureT a b e') = closureT a b e'
-withEnv e (envT x)          = envT x
 
 -- 2 + 3
 2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
@@ -351,7 +349,6 @@ mutual
   ⟦ boolT ∷ xs ⟧ᵈ = ⊥
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
   ⟦ funT x x₁ ∷ xs ⟧ᵈ = ⊥
-  ⟦ envT x ∷ xs ⟧ᵈ = ⊥
   ⟦ listT x ∷ xs ⟧ᵈ = ⊥
 
   record Closure (a b : Type) (e : Env) : Set where
@@ -369,7 +366,6 @@ mutual
   ⟦ pairT t₁ t₂ ⟧ᵗ    = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
   ⟦ funT a b ⟧ᵗ       = ⊤
   ⟦ closureT a b e ⟧ᵗ = Closure a b e
-  ⟦ envT e ⟧ᵗ         = ⟦ e ⟧ᵉ
   ⟦ listT t ⟧ᵗ        = List ⟦ t ⟧ᵗ
 
 ⟦_⟧ˢ : Stack → Set
@@ -389,7 +385,6 @@ tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
 tailᵈ {funT x x₁} ()
 tailᵈ {closureT a b e} (_ , xs) = xs
-tailᵈ {envT x} ()
 tailᵈ {listT x} ()
 
 --lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
