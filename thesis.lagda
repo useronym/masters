@@ -89,7 +89,7 @@
 open import Function using (flip)
 open import Data.Unit using (⊤) renaming (tt to ⋅)
 open import Data.Empty
-open import Data.Bool using (Bool) renaming (not to ¬_; true to tt; false to ff)
+open import Data.Bool using (Bool; _∧_) renaming (not to ¬_; true to tt; false to ff)
 open import Data.Nat using (ℕ)
 open import Data.Integer using (ℤ; +_; _+_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
@@ -226,14 +226,17 @@ mutual
          → ⊢ (pairT a b ∷ s) # e # f ⊳ (b ∷ s) # e # f
     add  : ∀ {s e f}
          → ⊢ (intT ∷ intT ∷ s) # e # f ⊳ (intT ∷ s) # e # f
-    nil? : ∀ {s e f a}
-         → ⊢ (listT a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
+    eq?  : ∀ {s e f a}
+         → ⊢ (a ∷ a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
     not  : ∀ {s e f}
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
     if   : ∀ {s s' e e' f f'}
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ s # e # f ↝ s' # e' # f'
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
+
+nil? : ∀ {s e f a} → ⊢ (listT a ∷ s) # e # f ↝ (boolT ∷ s) # e # f
+nil? = nil >| eq?
 
 loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
 loadList [] = nil >> ∅
@@ -309,7 +312,7 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
     body =
          ld here                   -- Load list.
       >> nil?                      -- Is it empty?
-      >| if (ld (there here) >| rtn) -- If so, load & return acc.
+      >+> if (ld (there here) >| rtn) -- If so, load & return acc.
           (ld (there (there here))     -- If not, load folding function.
         >> ld (there here)           -- Load previous acc.
         >> ap                      -- Partially apply folding function.
@@ -318,7 +321,7 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
         >> ap                      -- Apply, yielding new acc.
         >> ldr (there (there here))     -- Partially-tail apply the folding function to us.
         >> ld (there (there here))     -- Load the folding function.
-        >> ap >> flp >> ap >> ld here >> tail >| rap)                      -- Apply acc, result in another closure.
+        >> ap >> flp >> ap >> ld here >> tail >| rap) >> ∅                      -- Apply acc, result in another closure.
 --        >> ap                      -- Apply acc, result in another closure.
 --        >> ld here                 -- Load list.
 --        >> tail                    -- Drop the first element we just processed.
@@ -409,7 +412,13 @@ run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
 run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
 run ((_ , y) , s) e d (snd >> r) = run (y , s) e d r
 run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
-run (xs , s) e d (nil? >> r)     = run (null xs , s) e d r
+run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
+  where compare : {t₁ t₂ : Type} → ⟦ t₁ ⟧ᵗ → ⟦ t₂ ⟧ᵗ → ⟦ boolT ⟧ᵗ
+        compare {intT} {intT} a b = {!!}
+        compare {boolT} {boolT} a b = {!!}
+        compare {pairT t₁ t₃} {pairT s₁ s₂} (a₁ , a₂) (b₁ , b₂) = (compare a₁ b₁) ∧ (compare a₂ b₂)
+        compare {listT xs} {listT ys} a b = {!!}
+        compare {_} {_} _ _ = {!!}
 run (x , s) e d (not >> r)       = run (¬ x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (c₁ >+> r)
@@ -424,28 +433,28 @@ runℕ c n = runFor n
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
-_ : runℕ 2+3 1 ≡ just (+ 5)
-_ = refl
-
-_ : runℕ inc2 2 ≡ just (+ 3)
-_ = refl
-
-_ : runℕ λTest 3 ≡ just (+ 3)
-_ = refl
-
-foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
-foldTest =
-     foldl
-  >> plus
-  >> ap
-  >> ldc (int (+ 0))
-  >> ap
-  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
-  >+> ap
-  >> ∅
-
-_ : runℕ foldTest 29 ≡ just (+ 10)
-_ = refl
+--_ : runℕ 2+3 1 ≡ just (+ 5)
+--_ = refl
+--
+--_ : runℕ inc2 2 ≡ just (+ 3)
+--_ = refl
+--
+--_ : runℕ λTest 3 ≡ just (+ 3)
+--_ = refl
+--
+--foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+--foldTest =
+--     foldl
+--  >> plus
+--  >> ap
+--  >> ldc (int (+ 0))
+--  >> ap
+--  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
+--  >+> ap
+--  >> ∅
+--
+--_ : runℕ foldTest 29 ≡ just (+ 10)
+--_ = refl
 
 
 Ctx = List Type
