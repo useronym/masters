@@ -89,14 +89,15 @@
 open import Function using (flip)
 open import Data.Unit using (⊤) renaming (tt to ⋅)
 open import Data.Empty
-open import Data.Bool using (Bool; _∧_) renaming (not to ¬_; true to tt; false to ff)
-open import Data.Nat using (ℕ)
-open import Data.Integer using (ℤ; +_; _+_)
+open import Data.Bool using (Bool; _∧_) renaming (not to ¬_; true to tt; false to ff; _≟_ to _≟B_)
+open import Data.Nat using (ℕ) renaming (_≟_ to _≟ℕ_)
+open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Fin using (Fin; zero; suc)
 open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax)
-open import Data.List using (List; []; [_]; _∷_; null; map; length)
-open import Size
+open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
+open import Relation.Nullary.Decidable using (⌊_⌋)
+open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
 
@@ -129,6 +130,7 @@ data ListD {I : Set} (T : I → Set) : List I → Set where
 data _∈_ {A : Set} : A → List A → Set where
   here : ∀ {x xs} → x ∈ (x ∷ xs)
   there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+infix 10 _∈_
 
 lookup : ∀ {A x xs} → x ∈ xs → A
 lookup {x = x} here = x
@@ -140,36 +142,33 @@ lookup (there w) = lookup w
 --lookupD (consD elem xs) (suc at) = lookupD xs at
 
 
--- Type of atomic constants. These can be loaded directly from a single instruction.
+-- Type of abmic constants. These can be loaded directly a a single instruction.
 data Const : Set where
   true false : Const
   int : ℤ → Const
 
 mutual
-  -- Environment stores the types of bound variables.
+  -- Environment sbres the types of bound variables.
   Env = List Type
 
   -- Types that our machine recognizes.
   data Type : Set where
     intT boolT : Type
     pairT : Type → Type → Type
-    funT : Type → Type → Type
+    _⇒_ : Type → Type → Type
     listT : Type → Type
-
-_⇒_ : Type → Type → Type
-_⇒_ = funT
 infixr 15 _⇒_
 
--- Assignment of types to constants.
+-- Assignment of types b constants.
 typeof : Const → Type
 typeof true    = boolT
 typeof false   = boolT
 typeof (int x) = intT
 
--- Stack stores the types of values on the machine's stack.
+-- Stack sbres the types of values on the machine's stack.
 Stack = List Type
 
--- This is pretty much the call stack, allowing us to make recursive calls.
+-- This is pretty much the call stack, allowing us b make recursive calls.
 FunDump = List Type
 
 -- A state of our machine.
@@ -188,20 +187,20 @@ mutual
   ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ s₁ s₂
 
   data ⊢_⊳_ : State → State → Set where
-    ldf  : ∀ {s e f from to}
-         → (⊢ [] # (from ∷ e) # (funT from to ∷ f) ↝ [ to ] # (from ∷ e) # (funT from to ∷ f))
-         → ⊢ s # e # f ⊳ (funT from to ∷ s) # e # f
+    ldf  : ∀ {s e f a b}
+         → (⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f))
+         → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
-    ap   : ∀ {s e f from to}
-         → ⊢ (from ∷ funT from to ∷ s) # e # f ⊳ (to ∷ s) # e # f
-    rap  : ∀ {s e f from to}
-         → ⊢ (from ∷ funT from to ∷ s) # e # (funT from to ∷ f) ⊳ [ to ] # e # (funT from to ∷ f)
+    ap   : ∀ {s e f a b}
+         → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
+    rap  : ∀ {s e f a b}
+         → ⊢ (a ∷ a ⇒ b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
     ldr  : ∀ {s e f a b}
-         → (funT a b ∈ f)
-         → ⊢ s # e # f ⊳ (funT a b ∷ s) # e # f
+         → (a ⇒ b ∈ f)
+         → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
     rtn  : ∀ {s e a b f}
-         → ⊢ (b ∷ s) # e # (funT a b ∷ f) ⊳ [ b ] # e # (funT a b ∷ f)
+         → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     ldc  : ∀ {s e f}
@@ -225,6 +224,10 @@ mutual
     snd  : ∀ {s e f a b}
          → ⊢ (pairT a b ∷ s) # e # f ⊳ (b ∷ s) # e # f
     add  : ∀ {s e f}
+         → ⊢ (intT ∷ intT ∷ s) # e # f ⊳ (intT ∷ s) # e # f
+    sub  : ∀ {s e f}
+         → ⊢ (intT ∷ intT ∷ s) # e # f ⊳ (intT ∷ s) # e # f
+    mul  : ∀ {s e f}
          → ⊢ (intT ∷ intT ∷ s) # e # f ⊳ (intT ∷ s) # e # f
     eq?  : ∀ {s e f a}
          → ⊢ (a ∷ a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
@@ -260,14 +263,14 @@ loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
  >| add
 
 -- λx.x + 1
-inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (funT intT intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (funT intT intT ∷ f)
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
 inc =
     ld here
  >> ldc (int (+ 1))
  >> add
  >| rtn
 
--- Apply 2 to the above.
+-- Apply 2 b the above.
 inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
     ldf inc
@@ -281,19 +284,19 @@ inc2 =
        (ldf
          (ld here >> ld (there here) >> add >| rtn) >| rtn)
   >> ldc (int (+ 1)) -- Load first argument.
-  >> ap              -- Apply to curried function. Results in a closure.
+  >> ap              -- Apply b curried function. Results in a closure.
   >> ldc (int (+ 2)) -- Load second argument.
-  >| ap              -- Apply to closure.
+  >| ap              -- Apply b closure.
 
 -- λa.λb.a+b
--- withEnv test. Below is what withEnv desugars to.
+-- withEnv test. Below is what withEnv desugars b.
 -- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn)
 
 -- Shit getting real.
 foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
--- Below is the Agda-polymorphic version which does not typecheck. Something to do with how `withEnv e b` does not normalize further.
+-- Below is the Agda-polymorphic version which does not typecheck. Something b do with how `withEnv e b` does not normalize further.
 -- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
 -- Explicitly typing out the polymorhic version, however, works:
 --foldl : ∀ {a b e f} → ⊢ [] # e # f ⊳ [
@@ -306,7 +309,7 @@ foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT �
 --               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
 --             e
 --         ] # e # f
--- TODO: figure out what's going on here if has time.
+-- BDO: figure out what's going on here if has time.
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
   where
     body =
@@ -319,7 +322,7 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
         >> ld here                 -- Load list.
         >> head                    -- Get the first element.
         >> ap                      -- Apply, yielding new acc.
-        >> ldr (there (there here))     -- Partially-tail apply the folding function to us.
+        >> ldr (there (there here))     -- Partially-tail apply the folding function b us.
         >> ld (there (there here))     -- Load the folding function.
         >> ap >> flp >> ap >> ld here >> tail >| rap) >> ∅                      -- Apply acc, result in another closure.
 --        >> ap                      -- Apply acc, result in another closure.
@@ -337,7 +340,7 @@ mutual
   ⟦ intT ∷ xs ⟧ᵈ = ⊥
   ⟦ boolT ∷ xs ⟧ᵈ = ⊥
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
-  ⟦ funT a b ∷ xs ⟧ᵈ = Closure a b × ⟦ xs ⟧ᵈ
+  ⟦ a ⇒ b ∷ xs ⟧ᵈ = Closure a b × ⟦ xs ⟧ᵈ
   ⟦ listT x ∷ xs ⟧ᵈ = ⊥
 
   record Closure (a b : Type) : Set where
@@ -346,7 +349,7 @@ mutual
     field
       {e} : Env
       {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (funT a b ∷ f) ↝ [ b ] # (a ∷ e) # (funT a b ∷ f)
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
@@ -354,7 +357,7 @@ mutual
   ⟦ intT ⟧ᵗ           = ℤ
   ⟦ boolT ⟧ᵗ          = Bool
   ⟦ pairT t₁ t₂ ⟧ᵗ    = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
-  ⟦ funT a b ⟧ᵗ       = Closure a b
+  ⟦ a ⇒ b ⟧ᵗ       = Closure a b
   ⟦ listT t ⟧ᵗ        = List ⟦ t ⟧ᵗ
 
 ⟦_⟧ˢ : Stack → Set
@@ -369,14 +372,14 @@ tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
 tailᵈ {intT} ()
 tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
-tailᵈ {funT a b} (_ , xs) = xs
+tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
 
 --lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
 --lookupᵈ {mkClosureT _ _ _} (x , _) here = x
 --lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
 
-lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → funT a b ∈ f → Closure a b
+lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
 lookupᵈ f (there w) = lookupᵈ (tailᵈ f) w
 
@@ -385,14 +388,14 @@ run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ �
 run s e d ∅ = now s
 run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
 run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
+run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later λ where .force → do
-                           (to , _) ← run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-                           run (to , s) e d r
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
-  later λ where .force → run ⋅ (from , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
-  later λ where .force → run (from , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
+                           (b , _) ← run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+                           run (b , s) e d r
+run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
+  later λ where .force → run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
+  later λ where .force → run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
 run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
 run (x , s) e d (lett >> r)      = run s (x , e) d r
 run s e d (nil >> r)             = run ([] , s) e d r
@@ -412,13 +415,15 @@ run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
 run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
 run ((_ , y) , s) e d (snd >> r) = run (y , s) e d r
 run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
+run (x , y , s) e d (sub >> r)   = run (x - y , s) e d r
+run (x , y , s) e d (mul >> r)   = run (x * y , s) e d r
 run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
   where compare : {t₁ t₂ : Type} → ⟦ t₁ ⟧ᵗ → ⟦ t₂ ⟧ᵗ → ⟦ boolT ⟧ᵗ
-        compare {intT} {intT} a b = {!!}
-        compare {boolT} {boolT} a b = {!!}
-        compare {pairT t₁ t₃} {pairT s₁ s₂} (a₁ , a₂) (b₁ , b₂) = (compare a₁ b₁) ∧ (compare a₂ b₂)
-        compare {listT xs} {listT ys} a b = {!!}
-        compare {_} {_} _ _ = {!!}
+        compare {intT} {intT} a b   = ⌊ a ≟ℤ b ⌋
+        compare {boolT} {boolT} a b = ⌊ a ≟B b ⌋
+        compare {pairT _ _} {pairT _ _} (a₁ , a₂) (b₁ , b₂) = (compare a₁ b₁) ∧ (compare a₂ b₂)
+        compare {listT xs} {listT ys} a b = ⌊ length a ≟ℕ length b ⌋ -- BDO
+        compare {_} {_} _ _ = ff
 run (x , s) e d (not >> r)       = run (¬ x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (c₁ >+> r)
@@ -433,28 +438,28 @@ runℕ c n = runFor n
 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
---_ : runℕ 2+3 1 ≡ just (+ 5)
---_ = refl
---
---_ : runℕ inc2 2 ≡ just (+ 3)
---_ = refl
---
---_ : runℕ λTest 3 ≡ just (+ 3)
---_ = refl
---
---foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
---foldTest =
---     foldl
---  >> plus
---  >> ap
---  >> ldc (int (+ 0))
---  >> ap
---  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
---  >+> ap
---  >> ∅
---
---_ : runℕ foldTest 29 ≡ just (+ 10)
---_ = refl
+_ : runℕ 2+3 1 ≡ just (+ 5)
+_ = refl
+
+_ : runℕ inc2 2 ≡ just (+ 3)
+_ = refl
+
+_ : runℕ λTest 3 ≡ just (+ 3)
+_ = refl
+
+foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
+foldTest =
+     foldl
+  >> plus
+  >> ap
+  >> ldc (int (+ 0))
+  >> ap
+  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
+  >+> ap
+  >> ∅
+
+_ : runℕ foldTest 29 ≡ just (+ 10)
+_ = refl
 
 
 Ctx = List Type
@@ -488,11 +493,15 @@ compile (ƛ t) = ldf (compile t) >> ∅
 compile (f $ x) = compile f >+> compile x >+> ap >> ∅
 compile (rec x) = ldr x >> ∅
 compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
-compile (a == b) = {!!}
-compile (# x) = {!!}
-compile (#⁺ x) = {!!}
-compile mul = {!!}
-compile sub = {!!}
+compile (a == b) = compile b >+> compile a >+> eq? >> ∅
+compile (# x) = ldc (int x) >> ∅
+compile (#⁺ x) = ldc (int (+ x)) >> ∅
+compile mul = ldf (ldf (ld here >> ld (there here) >| mul) >| rtn) >> ∅
+compile sub = ldf (ldf (ld here >> ld (there here) >| sub) >| rtn) >> ∅
+
+
+_ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
+_ = refl
 
 \end{code}
 
