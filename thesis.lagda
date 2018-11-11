@@ -195,7 +195,7 @@ mutual
     ap   : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
     rap  : ∀ {s e f a b}
-         → ⊢ (a ∷ a ⇒ b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
+         → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
     ldr  : ∀ {s e f a b}
          → (a ⇒ b ∈ f)
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
@@ -487,18 +487,23 @@ fac = ƛ if (var here == #⁺ 1)
           else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
                     $ var here)
 
-compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
-compile (var x) = ld x >> ∅
-compile (ƛ t) = ldf (compile t) >> ∅
-compile (f $ x) = compile f >+> compile x >+> ap >> ∅
-compile (rec x) = ldr x >> ∅
-compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
-compile (a == b) = compile b >+> compile a >+> eq? >> ∅
-compile (# x) = ldc (int x) >> ∅
-compile (#⁺ x) = ldc (int (+ x)) >> ∅
-compile mul = ldf (ldf (ld here >> ld (there here) >| mul) >| rtn) >> ∅
-compile sub = ldf (ldf (ld here >> ld (there here) >| sub) >| rtn) >> ∅
+mutual
+  compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ) ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
+  compileT (f $ x) = compile f >+> compile x >+> rap >> ∅
+  compileT (if t then a else b) = compile t >+> if (compileT a) (compileT b) >> ∅
+  compileT t = compile t >+> rtn >> ∅
 
+  compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
+  compile (var x) = ld x >> ∅
+  compile (ƛ t) = ldf (compileT t) >> ∅
+  compile (f $ x) = compile f >+> compile x >+> ap >> ∅
+  compile (rec x) = ldr x >> ∅
+  compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
+  compile (a == b) = compile b >+> compile a >+> eq? >> ∅
+  compile (# x) = ldc (int x) >> ∅
+  compile (#⁺ x) = ldc (int (+ x)) >> ∅
+  compile mul = ldf (ldf (ld here >> ld (there here) >| mul) >| rtn) >> ∅
+  compile sub = ldf (ldf (ld here >> ld (there here) >| sub) >| rtn) >> ∅
 
 _ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
 _ = refl
