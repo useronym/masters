@@ -1,4 +1,4 @@
-\documenldrlass[
+\documentclass[
   digital, %% This option enables the default options for the
            %% digital version of a document. Replace with `printed`
            %% to enable the default options for the printed version
@@ -17,10 +17,10 @@
   %% <http://mirrors.ctan.org/macros/latex/contrib/fithesis/guide/mu/fi.pdf>.
 ]{fithesis3}
 
-\usepackage{fontspec}
-\usepackage{yfonts}
-\usepackage{unicode-math}
-\usepackage{xunicode}
+%%\usepackage{fontspec}
+%%\usepackage{yfonts}
+%%\usepackage{unicode-math}
+%%\usepackage{xunicode}
 \usepackage[main=english]{babel} 
 
 \thesissetup{
@@ -47,21 +47,28 @@
 %% \usepackage{makeidx}      %% The `makeidx` package contains
 %%\makeindex                %% helper commands for index typesetting.
 %% These additional packages are used within the document:
-\usepackage{amsmath}  %% Mathematics
-\usepackage{mathtools}  %% Mathematics
-\usepackage{amsthm}
-\usepackage{amsfonts}
+%%\usepackage{amsmath}  %% Mathematics
+%%\usepackage{mathtools}  %% Mathematics
+%%\usepackage{amsthm}
+%%\usepackage{amsfonts}
+\usepackage{amssymb}
 \usepackage{url}      %% Hyperlinks
-\usepackage{epigraph}
-\setlength{\epigraphwidth}{3in}
 
-\theoremstyle{definition}
-\newtheorem{theorem}{Theorem}
-\newtheorem{definition}{Definition}
-\newtheorem{notation}{Notation}
+%%\theoremstyle{definition}
+%%\newtheorem{theorem}{Theorem}
+%%\newtheorem{definition}{Definition}
+%%\newtheorem{notation}{Notation}
 
 
 \usepackage{agda}
+\usepackage{newunicodechar}
+\newunicodechar{λ}{\ensuremath{\mathnormal\lambda}}
+\newunicodechar{ƛ}{\ensuremath{\mathnormal\lambda}}
+\newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbb{N}}}
+\newunicodechar{ℤ}{\ensuremath{\mathnormal\mathbb{Z}}}
+\newunicodechar{↝}{\ensuremath{\mathnormal\leadsto}}
+\newunicodechar{ᵈ}{\ensuremath{^d}}
+\newunicodechar{ᶜ}{\ensuremath{^c}}
 
 \makeatletter
 \renewcommand{\@chapapp}{}% Not necessary...
@@ -82,9 +89,6 @@
 \end{chapquote}
 
 \chapter{Agda}
-\chapter{SECD Machine}
-\chapter{Formalization}
-
 \begin{code}
 open import Function using (flip)
 open import Data.Unit using (⊤) renaming (tt to ⋅)
@@ -101,32 +105,6 @@ open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
 
-
-data Path {A : Set} (R : A → A → Set) : A → A → Set where
-  ∅    : ∀ {a} → Path R a a
-  _>>_ : ∀ {a b c} → R a b → Path R b c → Path R a c
-infixr 5 _>>_
-
-_>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
-a >| b = a >> b >> ∅
-
-_>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
-∅ >+> r = r
-(x >> l) >+> r = x >> (l >+> r)
-infixr 4 _>+>_
-
-snoc : ∀ {A R} {a b c : A} → Path R a b → R b c → Path R a c
-snoc ∅ e = e >> ∅
-snoc (x >> p) e = x >> (snoc p e)
-
-reverse : ∀ {A R} {a b : A} → Path R a b → Path (flip R) b a
-reverse ∅ = ∅
-reverse (x >> p) = snoc (reverse p) x
-
-data ListD {I : Set} (T : I → Set) : List I → Set where
-  nilD  : ListD T []
-  consD : ∀ {x xs} → (elem : T x) → (rest : ListD T xs) → ListD T (x ∷ xs)
-
 data _∈_ {A : Set} : A → List A → Set where
   here : ∀ {x xs} → x ∈ (x ∷ xs)
   there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
@@ -136,50 +114,96 @@ lookup : ∀ {A x xs} → x ∈ xs → A
 lookup {x = x} here = x
 lookup (there w) = lookup w
 
---lookupD : {I : Set} {T : I → Set} {xs : List I} → ListD T xs → (at : Fin (length xs)) → T (lookup xs at)
---lookupD nilD ()
---lookupD (consD elem xs) zero     = elem
---lookupD (consD elem xs) (suc at) = lookupD xs at
+\end{code}
 
+\chapter{SECD Machine}
+\chapter{Formalization}
+In this chapter, we approach the main topic of this thesis. We will formalize a
+SECD machine in Agda, with typed syntax, and then proceed to define the
+semantics by way of coinduction. Finally, we will define a typed λ calculus,
+corresponding exactly to the capabilities of the SECD machine, and define a
+compilation procedure from this calculus to typed SECD programs.
 
--- Type of abmic constants. These can be loaded directly a a single instruction.
+\section{Syntax}
+\subsection{Preliminaries}
+Before we can proceed, we shall require certain machinery to aid us in
+formalizing the type system.
+
+We define the data type \AgdaDatatype{Path}, parametrized by a binary relation,
+whose values are finite sequences of values such that each value is in relation
+with the next.
+\begin{code}
+data Path {A : Set} (R : A → A → Set) : A → A → Set where
+  ∅    : ∀ {a} → Path R a a
+  _>>_ : ∀ {a b c} → R a b → Path R b c → Path R a c
+infixr 5 _>>_
+\end{code}
+The first constructor creates an empty path. The second takes an
+already-existing path and prepends to it a value, given a proof that this value
+is in relation with the first element of the already-existing path. The reader
+may notice a certain similarity to linked lists; indeed if for the relation we
+take the universal one for our data type \AgdaDatatype{A}, then we obtain a type
+that's isomorphic to linked lists.
+
+We also define a shorthand for constructing the end of a path.
+\begin{code}
+_>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
+a >| b = a >> b >> ∅
+\end{code}
+Furthermore, we can also append two paths, given that the end of the first path
+matches the start of the second one.
+\begin{code}
+_>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
+∅ >+> r = r
+(x >> l) >+> r = x >> (l >+> r)
+infixr 4 _>+>_
+\end{code}
+\subsection{Machine types}
+We start by defining the type of constants our machine will recognize. We will
+limit ourselves to booleans and integers.
+\begin{code}
 data Const : Set where
   true false : Const
   int : ℤ → Const
-
-mutual
-  -- Environment sbres the types of bound variables.
-  Env = List Type
-
-  -- Types that our machine recognizes.
-  data Type : Set where
-    intT boolT : Type
-    pairT : Type → Type → Type
-    _⇒_ : Type → Type → Type
-    listT : Type → Type
+\end{code}
+Next, we define which types our machine recognizes.
+\begin{code}
+data Type : Set where
+  intT boolT : Type
+  pairT : Type → Type → Type
+  listT : Type → Type
+  _⇒_ : Type → Type → Type
 infixr 15 _⇒_
+\end{code}
+Firstly, there are types corresponding to the constants we have already defined
+above. Then, we also introduce a product type and a list type. Finally, there is
+the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 
+Now we can define the type assignment of constants.
+\begin{code}
 -- Assignment of types b constants.
 typeof : Const → Type
 typeof true    = boolT
 typeof false   = boolT
 typeof (int x) = intT
-
--- Stack sbres the types of values on the machine's stack.
-Stack = List Type
-
--- This is pretty much the call stack, allowing us b make recursive calls.
+\end{code}
+Next, we define the typed stack, environment, and function dump.
+\begin{code}
+Stack   = List Type
+Env     = List Type
 FunDump = List Type
+\end{code}
 
--- A state of our machine.
+\begin{code}
 record State : Set where
   constructor _#_#_
   field
     s : Stack
     e : Env
     f : FunDump
-
--- The typing relation.
+\end{code}
+\subsection{Typing relation}
+\begin{code}
 infix 5 ⊢_↝_
 infix 5 ⊢_⊳_
 mutual
