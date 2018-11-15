@@ -9,7 +9,7 @@
            %% if you don’t have access to a double-sided printer,
            %% or if one-sided typesetting is a formal requirement
            %% at your faculty.
-  table,   %% This option causes the coloring of tables. Replace
+  notable,   %% This option causes the coloring of tables. Replace
            %% with `notable` to restore plain LaTeX tables.
   nolof    %% This option prints the List of Figures. Replace with
            %% `nolof` to hide the List of Figures.
@@ -41,7 +41,7 @@
     thanks        = {These are the acknowledgements for my thesis, which can
 
                      span multiple paragraphs.},
-    bib           = bibliography.bib,
+    bib           = bibliography.bib
 }
 
 %% \usepackage{makeidx}      %% The `makeidx` package contains
@@ -51,7 +51,9 @@
 %%\usepackage{mathtools}  %% Mathematics
 %%\usepackage{amsthm}
 %%\usepackage{amsfonts}
+\usepackage[backend=biber]{biblatex}
 \usepackage{amssymb}
+\usepackage{booktabs}
 \usepackage{url}      %% Hyperlinks
 
 %%\theoremstyle{definition}
@@ -69,6 +71,9 @@
 \newunicodechar{↝}{\ensuremath{\mathnormal\leadsto}}
 \newunicodechar{ᵈ}{\ensuremath{^d}}
 \newunicodechar{ᶜ}{\ensuremath{^c}}
+\newcommand{\A}{\AgdaArgument}
+\newcommand{\D}{\AgdaDatatype}
+\newcommand{\I}{\AgdaInductiveConstructor}
 
 \makeatletter
 \renewcommand{\@chapapp}{}% Not necessary...
@@ -89,18 +94,223 @@
 \end{chapquote}
 
 \chapter{Agda}
+\begin{chapquote}{From the topic of the official Agda IRC channel}
+  Agda: is it a dependently-typed programming language? Is it a proof-assistant
+  based on intuitionistic type theory?
+
+  \verb|¯\(°_0)/¯| Dunno, lol.
+\end{chapquote}
+Agda\parencite{norell2007towards} is a
+\section{Basics}
+In this section, we present a few simple types in order to get accustomed to the
+syntax of Agda by way of example.
+\subsection{Trivial Types}
+The simples type is a type which is trivially inhabited by a single value. This
+type is often refered to as \textit{Top} or \textit{Unit}. In Agda,
 \begin{code}
-open import Function using (flip)
-open import Data.Unit using (⊤) renaming (tt to ⋅)
-open import Data.Empty
-open import Data.Bool using (Bool; _∧_) renaming (not to ¬_; true to tt; false to ff; _≟_ to _≟B_)
-open import Data.Nat using (ℕ) renaming (_≟_ to _≟ℕ_)
+data ⊤ : Set where
+  ⋅ : ⊤
+\end{code}
+declares the new data type \AgdaDatatype{⊤} which is itself of type
+\AgdaPrimitiveType{Set}\footnote{For the reader familiar with the Haskell type
+  system, the Agda type Set is akin to the Haskell kind \textit{Star}.}. The
+second line declared a constructor for this type, here called simply
+\AgdaInductiveConstructor{⋅}, which constructs a value of type
+\AgdaDatatype{⊤}\footnote{Again for the Haskell-able, note how the syntax here
+  resembles that of Haskell with the extension \texttt{GADTs}.}.
+
+The dual of \AgdaDatatype{⊤} is the trivially uninhabited type, often called
+\textit{Bottom} or \textit{Empty}. Complete definition in Agda follows.
+\begin{code}
+data ⊥ : Set where
+\end{code}
+Note how there are no constructors declared for this type, therefore it is
+clearly uninhabited.
+\subsection{Booleans}
+A step-up from the trivially inhabited type \AgdaDatatype{⊤}, the type of
+booleans is made up of two distinct values.
+\begin{code}
+data Bool : Set where
+  tt ff : Bool
+\end{code}
+Since both constructors have the same type signature, we took advantage of a
+feature in Agda that allows us to declare such constructors on one line,
+together with the shared type.
+
+We can also declare our first function now, one that will perform negation of
+Boolean values.
+\begin{code}
+¬_ : Bool → Bool
+¬ tt = ff
+¬ ff = tt
+\end{code}
+Here we utilized pattern matching to split on the argument and
+flipped one into the other. Note the underscore \texttt{\_} in the name declaration of this
+function: it symbolizes where the argument is to be
+expected. Agda has a strong support for mixfix operators and we will see more
+examples of this later.
+
+Another function we can define is the conjunction of two boolean values, using a
+similar approach.
+\begin{code}
+_∧_ : Bool → Bool → Bool
+tt ∧ b = b
+ff ∧ b = ff
+\end{code}
+\subsection{Products}
+To define the product type, it is customary to use a record. This will give us
+implicit projection functions from the type.
+\begin{code}
+record _×_ (A : Set) (B : Set) : Set where
+  constructor _,_
+  field
+    proj₁ : A
+    proj₂ : B
+infixr 4 _,_
+\end{code}
+Here we declared a new record type, parametrized by two other types,
+\AgdaArgument{A} and \AgdaArgument{B}. These are the types of the values stored
+in the pair, which we construct with the operator
+\AgdaInductiveConstructor{\_,\_}. We also declare the fixity of this operator to
+be right-associative.
+\subsection{Natural numbers}
+To see a more interesting example of a type, let us consider the type of natural numbers. These can be implemented using Peano encoding, as shown below.
+\begin{code}[hide]
+module Hidden where
+\end{code}
+\begin{code}
+  data ℕ : Set where
+    zero : ℕ
+    suc  : ℕ → ℕ
+\end{code}
+Here we have a nullary constructor for the value zero, and then a unary
+constructor which corresponds to the successor function. As an example, consider the
+number 3, which would be encoded as~\AgdaInductiveConstructor{suc(suc(suc\
+  zero))}.
+
+As an example of a function on the naturals, let us define the addition function.
+\begin{code}
+  _+_ : ℕ → ℕ → ℕ
+  zero + b  = b
+  suc a + b = suc (a + b)
+\end{code}
+We proceed by induction on the left argument: if that number is zero, the result
+is simply the right argument. If the left argument is a successor to some number
+\AgdaArgument{a}, we inductively perform addition of \AgdaArgument{a} to
+\AgdaArgument{b}, and then apply the successor function.
+\section{Propositional Equality}
+In this section, we will take a short look at one of the main features of
+intuitionistic type theory, namely, the identity type. This type allows us to
+state the proposition that two values of some data type are \textit{equal}. The
+concept of \textit{equal} here is that both of the values are convertible to the
+same value through reductions. This is the concept of propositional equality.
+Compare this with definitional equality, which only allows us to express
+when two values have the same syntactic representation. For example,
+definitionaly it holds that $2=2$, however, $1+1=2$ only holds propositionaly,
+because a reduction is required on the left-hand side.
+
+We can define propositional equality in Agda as follows.
+\begin{code}
+  data _≡_ {A : Set} : A → A → Set where
+    refl : {x : A} → x ≡ x
+\end{code}
+\begin{code}[hide]
+open import Relation.Binary.PropositionalEquality using (_≡_; refl)
+open import Data.Nat using (ℕ; zero; suc) renaming (_≟_ to _≟ℕ_)
+\end{code}
+The equality type is polymorhic in some other underlying type, \AgdaArgument{A}.
+The only way we have to construct values of this type is by the constructor
+\AgdaInductiveConstructor{refl}, which says that each value is propositionaly
+equal to itself. Symmetry and transitivity of \AgdaDatatype{\_≡\_} are theorems
+in Agda.
+\begin{code}
+sym : {A : Set} {a b : A} → a ≡ b → b ≡ a
+sym refl = refl
+
+trans : {A : Set} {a b c : A} → a ≡ b → b ≡ c → a ≡ c
+trans refl refl = refl
+\end{code}
+By case splitting on the arguments we force Agda to unify the variables \A{a},
+\A{b}, and \A{c}. Afterwards, we can construct the required proof with the
+\I{refl} constructor. This is a feature of the underlying type theory of Agda.
+
+Finally, let us see the promised proof of $1+1=2$,
+\begin{code}[hide]
+module Hidden2 where
+  open import Data.Nat using (_+_)
+\end{code}
+\begin{code}
+  1+1≡2 : 1 + 1 ≡ 2
+  1+1≡2 = refl
+\end{code}
+The proof is trivial, as $1+1$ reduces directly to two. A more interesting proof
+would be that of associativity of addition,
+\begin{code}
+  +-assoc : ∀ {a b c} → a + (b + c) ≡ (a + b) + c
+  +-assoc {zero}  = refl
+  +-assoc {suc a} = let a+[b+c]≡[a+b]+c = +-assoc {a}
+                      in ≡-cong suc a+[b+c]≡[a+b]+c
+    where ≡-cong : {A B : Set} {a b : A} → (f : A → B) → a ≡ b → f a ≡ f b
+          ≡-cong f refl = refl
+\end{code}
+\section{Decidable Equality}
+\begin{code}
+open import Relation.Binary.Core using (Decidable)
+open import Relation.Nullary using (Dec; yes; no)
+
+_≟B_ : Decidable {A = Bool} _≡_
+tt  ≟B tt = yes refl
+ff ≟B ff  = yes refl
+tt  ≟B ff = no λ()
+ff ≟B tt  = no λ()
+
+⌊_⌋ : {A : Set} {a b : A} → Dec (a ≡ b) → Bool
+⌊ yes p ⌋ = tt
+⌊ no ¬p ⌋ = ff
+\end{code}
+\section{Formalizing Type Systems}
+In what follows, we will take a look at how we can use Agda to formalize
+deductive systems. We will take the simplest example there is, the Simply Typed
+λ Calculus. Some surface-level knowledge of this calculus is assumed.
+\subsection{De Bruijn Indices}
+Firstly, we shall need some machinery to make our lives easier. We could use
+string literals as variable names in our system, however this would lead to
+certain difficulties further on. Instead, we shall use the concept commonly
+referred to as De Bruijn indices\parencite{de1972lambda}. These replace variable
+names with natural numbers, where each number $n$ refers to the variable bound
+by the binder $n$ positions above the current scope in the syntactical tree. Some
+examples of this naming schema are shown in Figure \ref{debruijn}.
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{ l l }
+    \multicolumn{1}{c}{Literal syntax} & \multicolumn{1}{c}{De Bruijn syntax} \\
+    \midrule
+    \verb|λx.x| & \verb|λ 0| \\
+    \verb|λx.λy.x| & \verb|λλ 1| \\
+    \verb|λx.λy.λz.x z (y z)| & \verb|λλλ 2 0 (1 0)| \\
+    \verb|λf.(λx.f(x x)) (λx.f(x x))| & \verb|λ(λ 1 (0 0) (λ 1 (0 0)| \\
+  \end{tabular}
+  \caption{Examples of λ terms using standard naming scheme on the left and
+    using De Bruijn indices on the right.}
+  \label{debruijn}
+\end{figure}
+
+    
+\subsection{Example: Simply Typed λ Calculus}
+\subsubsection{Syntax}
+\subsubsection{Semantics by Embedding into Agda}
+\section{Coinduction}
+\subsection{Examples of coinductive types}
+\subsubsection{Coproducts}
+\subsubsection{Streams}
+\subsection{Bisimilarity}
+\subsection{The Delay Monad}
+
+\begin{code}
 open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
-open import Data.Fin using (Fin; zero; suc)
-open import Data.Product using (_×_; _,_; proj₁; proj₂; Σ; ∃; ∃-syntax)
+open import Data.Product using (Σ; ∃; ∃-syntax)
 open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
-open import Relation.Nullary.Decidable using (⌊_⌋)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
@@ -214,6 +424,8 @@ mutual
     ldf  : ∀ {s e f a b}
          → (⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f))
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
+\end{code}
+\begin{code}
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e f a b}
@@ -459,8 +671,6 @@ runℕ c n = runFor n
     (x , _) ← run ⋅ ⋅ ⋅ c
     now x
 
-
-open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 
 _ : runℕ 2+3 1 ≡ just (+ 5)
 _ = refl
