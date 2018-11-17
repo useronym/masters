@@ -66,11 +66,13 @@
 \usepackage{newunicodechar}
 \newunicodechar{λ}{\ensuremath{\mathnormal\lambda}}
 \newunicodechar{ƛ}{\ensuremath{\mathnormal\lambda}}
+\newunicodechar{ι}{\ensuremath{\mathnormal\iota}}
 \newunicodechar{ℕ}{\ensuremath{\mathnormal\mathbb{N}}}
 \newunicodechar{ℤ}{\ensuremath{\mathnormal\mathbb{Z}}}
 \newunicodechar{↝}{\ensuremath{\mathnormal\leadsto}}
 \newunicodechar{ᵈ}{\ensuremath{^d}}
 \newunicodechar{ᶜ}{\ensuremath{^c}}
+\newunicodechar{★}{\ensuremath{\mathnormal\star}}
 \newcommand{\A}{\AgdaArgument}
 \newcommand{\D}{\AgdaDatatype}
 \newcommand{\I}{\AgdaInductiveConstructor}
@@ -279,7 +281,7 @@ certain difficulties further on. Instead, we shall use the concept commonly
 referred to as De Bruijn indices\parencite{de1972lambda}. These replace variable
 names with natural numbers, where each number $n$ refers to the variable bound
 by the binder $n$ positions above the current scope in the syntactical tree. Some
-examples of this naming schema are shown in Figure \ref{debruijn}.
+examples of this naming scheme are shown in Figure \ref{debruijn}.
 \begin{figure}[h]
   \centering
   \begin{tabular}{ l l }
@@ -288,17 +290,139 @@ examples of this naming schema are shown in Figure \ref{debruijn}.
     \verb|λx.x| & \verb|λ 0| \\
     \verb|λx.λy.x| & \verb|λλ 1| \\
     \verb|λx.λy.λz.x z (y z)| & \verb|λλλ 2 0 (1 0)| \\
-    \verb|λf.(λx.f(x x)) (λx.f(x x))| & \verb|λ(λ 1 (0 0) (λ 1 (0 0)| \\
+    \verb|λf.(λx.f(x x)) (λx.f(x x))| & \verb|λ(λ 1 (0 0)) (λ 1 (0 0))| \\
   \end{tabular}
   \caption{Examples of λ terms using standard naming scheme on the left and
     using De Bruijn indices on the right.}
   \label{debruijn}
 \end{figure}
+The immediately apparent advantage of using De Bruijn indices is that
+α-equivalence of λ terms becomes trivially decidable by way of purely syntactic
+equality. Other advantages include easier formalization.
+\subsubsection{Implementation}
+To implement De Bruijn indices in Agda, we will express what it means for a
+variable to be present in a context. We shall assume that a context is a list of
+types, as this is how contexts will be defined in the next subsection. We will
+express list membership as a new data type,
+\begin{code}[hide]
+open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
+\end{code}
+\begin{code}
+data _∈_ {A : Set} : A → List A → Set where
+  here : ∀ {x xs} → x ∈ (x ∷ xs)
+  there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+infix 10 _∈_
+\end{code}
+The first constructor says that an element is present in a list if that element
+is the head of the list. The second constructor says that if we already know
+that our element \A{x} is in a list, we can extend the list with another element
+and \A{x} will still be present in the new list.
 
-    
+Now we can also define a function which, given a proof that an element is in a
+list, returns the aforementioned element.
+\begin{code}
+lookup : ∀ {A x xs} → x ∈ xs → A
+lookup {x = x} here = x
+lookup (there w)    = lookup w
+\end{code}
+We will also define shorthands to construct often-used elements of \D{\_∈\_} for
+use in examples later on.
+\begin{code}
+𝟎 : ∀ {A} {x : A} {xs : List A} → x ∈ (x ∷ xs)
+𝟎 = here
+
+𝟏 : ∀ {A} {x y : A} {xs : List A} → x ∈ (y ∷ x ∷ xs)
+𝟏 = there here
+
+𝟐 : ∀ {A} {x y z : A} {xs : List A} → x ∈ (z ∷ y ∷ x ∷ xs)
+𝟐 = there (there here)
+\end{code}
 \subsection{Example: Simply Typed λ Calculus}
+In this subsection we will, in preparation of the main matter of this thesis,
+introduce the way typed deductive systems can be formalized in Agda. As
+promised, we will formalize the Simply Typed λ Calculus.
 \subsubsection{Syntax}
+First, we define the types in our system.
+\begin{code}[hide]
+module Hidden3 where
+\end{code}
+\begin{code}
+  data ★ : Set where
+    ι   : ★
+    _⇒_ : ★ → ★ → ★
+  infixr 20 _⇒_
+\end{code}
+Here we defined some atomic type \I{ι} and a binary type constructor for
+function types. We proceed by defining context as a list of types.
+\begin{code}
+  Context : Set
+  Context = List ★
+\end{code}
+Now we are finally able to define the deductive rules that make up the calculus,
+using De Bruijn indices as explained above.
+\begin{code}
+  data _⊢_ : Context → ★ → Set where
+    var : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
+    ƛ_  : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
+    _$_ : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
+  infix 4 _⊢_
+  infixr 5 ƛ_
+  infixl 10 _$_
+\end{code}
+The constructors above should be fairly self-explanatory: they correspond
+exactly to the typing rules of the calculus. In the first rule we employed the
+data type \D{\_∈\_} implenting De Bruijn indices. Second rule captures the
+concept of λ-abstraction, and the last rule is function application.
+
+We can see some examples now,
+\begin{code}
+  I : ∀ {Γ α} → Γ ⊢ α ⇒ α
+  I = ƛ (var 𝟎)
+
+  S : ∀ {Γ α β γ} → Γ ⊢ (α ⇒ β ⇒ γ) ⇒ (α ⇒ β) ⇒ α ⇒ γ
+  S = ƛ ƛ ƛ var 𝟐 $ var 𝟎 $ (var 𝟏 $ var 𝟎)
+\end{code}
+Note how we use Agda polymorphism to construct a polymorphic term of our
+calculus; there is no polymorhism in the calculus itself.
+
+The advantage of this presentation is that only well-typed syntax is
+representable. Thus, whenever we work with a term of our calculus, it is
+guaranteed to be well-typed, which often simplifiest things. We will see an
+example of this in the next section.
 \subsubsection{Semantics by Embedding into Agda}
+Now that we have defined the syntax, the next step is to give it semantics. We
+will do this in a straightforward manned by way of embedding our calculus into
+Agda.
+
+Firstly, we define the semantics of types.
+\begin{code}
+  ⟦_⟧★ : ★ → Set
+  ⟦ ι ⟧★     = ℕ
+  ⟦ α ⇒ β ⟧★ = ⟦ α ⟧★ → ⟦ β ⟧★
+\end{code}
+\begin{code}
+  ⟦_⟧C : Context → Set
+  ⟦ [] ⟧C     = ⊤
+  ⟦ x ∷ xs ⟧C = ⟦ x ⟧★ × ⟦ xs ⟧C
+\end{code}
+\begin{code}
+  ⟦_⟧∈ : ∀ {x xs} → x ∈ xs → ⟦ xs ⟧C → ⟦ x ⟧★
+  ⟦ here ⟧∈ (x , _)     = x
+  ⟦ there w ⟧∈ (_ , xs) = ⟦ w ⟧∈ xs
+\end{code}
+\begin{code}
+  ⟦_⟧ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
+  ⟦ var x ⟧ γ = ⟦ x ⟧∈ γ
+  ⟦ ƛ x ⟧ γ   = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
+  ⟦ f $ x ⟧ γ = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
+\end{code}
+\begin{code}
+  idℕ : ℕ → ℕ
+  idℕ x = x
+
+  _ : ⟦ I ⟧ ⋅ ≡ idℕ
+  _ = refl
+\end{code}
 \section{Coinduction}
 \subsection{Examples of coinductive types}
 \subsubsection{Coproducts}
@@ -310,19 +434,10 @@ examples of this naming schema are shown in Figure \ref{debruijn}.
 open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
 open import Data.Maybe using (Maybe; nothing; just; maybe)
 open import Data.Product using (Σ; ∃; ∃-syntax)
-open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
 
-data _∈_ {A : Set} : A → List A → Set where
-  here : ∀ {x xs} → x ∈ (x ∷ xs)
-  there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
-infix 10 _∈_
-
-lookup : ∀ {A x xs} → x ∈ xs → A
-lookup {x = x} here = x
-lookup (there w) = lookup w
 
 \end{code}
 
@@ -385,8 +500,8 @@ data Type : Set where
   _⇒_ : Type → Type → Type
 infixr 15 _⇒_
 \end{code}
-Firstly, there are types corresponding to the constants we have already defined
-above. Then, we also introduce a product type and a list type. Finally, there is
+Firstly, t𝟎 are types corresponding to the constants we have already defined
+above. Then, we also introduce a product type and a list type. Finally, t𝟎 is
 the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 
 Now we can define the type assignment of constants.
@@ -501,7 +616,7 @@ loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
 -- λx.x + 1
 inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
 inc =
-    ld here
+    ld 𝟎
  >> ldc (int (+ 1))
  >> add
  >| rtn
@@ -518,7 +633,7 @@ inc2 =
 λTest =
      ldf -- First, we construct the curried function.
        (ldf
-         (ld here >> ld (there here) >> add >| rtn) >| rtn)
+         (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
   >> ldc (int (+ 1)) -- Load first argument.
   >> ap              -- Apply b curried function. Results in a closure.
   >> ldc (int (+ 2)) -- Load second argument.
@@ -528,7 +643,7 @@ inc2 =
 -- withEnv test. Below is what withEnv desugars b.
 -- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
-plus = ldf (ldf (ld here >> ld (there here) >> add >| rtn) >| rtn)
+plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
 
 -- Shit getting real.
 foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
@@ -545,24 +660,24 @@ foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT �
 --               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
 --             e
 --         ] # e # f
--- BDO: figure out what's going on here if has time.
+-- BDO: figure out what's going on 𝟎 if has time.
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
   where
     body =
-         ld here                   -- Load list.
+         ld 𝟎                   -- Load list.
       >> nil?                      -- Is it empty?
-      >+> if (ld (there here) >| rtn) -- If so, load & return acc.
-          (ld (there (there here))     -- If not, load folding function.
-        >> ld (there here)           -- Load previous acc.
+      >+> if (ld 𝟏 >| rtn) -- If so, load & return acc.
+          (ld 𝟐     -- If not, load folding function.
+        >> ld 𝟏           -- Load previous acc.
         >> ap                      -- Partially apply folding function.
-        >> ld here                 -- Load list.
+        >> ld 𝟎                 -- Load list.
         >> head                    -- Get the first element.
         >> ap                      -- Apply, yielding new acc.
-        >> ldr (there (there here))     -- Partially-tail apply the folding function b us.
-        >> ld (there (there here))     -- Load the folding function.
-        >> ap >> flp >> ap >> ld here >> tail >| rap) >> ∅                      -- Apply acc, result in another closure.
+        >> ldr 𝟐     -- Partially-tail apply the folding function b us.
+        >> ld 𝟐     -- Load the folding function.
+        >> ap >> flp >> ap >> ld 𝟎 >> tail >| rap) >> ∅                      -- Apply acc, result in another closure.
 --        >> ap                      -- Apply acc, result in another closure.
---        >> ld here                 -- Load list.
+--        >> ld 𝟎                 -- Load list.
 --        >> tail                    -- Drop the first element we just processed.
 --        >| rap)                      -- Finally apply the last argument, that rest of the list.
 
@@ -612,8 +727,8 @@ tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
 
 --lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
---lookupᵈ {mkClosureT _ _ _} (x , _) here = x
---lookupᵈ {mkClosureT _ _ _} list (there at) = lookupᵈ (tailᵈ list) at
+--lookupᵈ {mkClosureT _ _ _} (x , _) 𝟎 = x
+--lookupᵈ {mkClosureT _ _ _} list (t𝟎 at) = lookupᵈ (tailᵈ list) at
 
 lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
@@ -716,10 +831,10 @@ infix 5 _==_
 
 
 fac : [] × [] ⊢ (intT ⇒ intT)
-fac = ƛ if (var here == #⁺ 1)
+fac = ƛ if (var 𝟎 == #⁺ 1)
           then #⁺ 1
-          else (mul $ (rec here $ (sub $ var here $ #⁺ 1))
-                    $ var here)
+          else (mul $ (rec 𝟎 $ (sub $ var 𝟎 $ #⁺ 1))
+                    $ var 𝟎)
 
 mutual
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ) ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
@@ -736,8 +851,8 @@ mutual
   compile (a == b) = compile b >+> compile a >+> eq? >> ∅
   compile (# x) = ldc (int x) >> ∅
   compile (#⁺ x) = ldc (int (+ x)) >> ∅
-  compile mul = ldf (ldf (ld here >> ld (there here) >| mul) >| rtn) >> ∅
-  compile sub = ldf (ldf (ld here >> ld (there here) >| sub) >| rtn) >> ∅
+  compile mul = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
+  compile sub = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
 
 _ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
 _ = refl
