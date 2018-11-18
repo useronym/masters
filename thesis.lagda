@@ -30,11 +30,11 @@
     type          = mgr,
     author        = {Bc. Adam Krupička},
     gender        = m,
-    advisor       = {prof. RNDr. Luboš Brim, CSc.},
-    title         = {Distributed-memory model checker for Hybrid LTL},
-    TeXtitle      = {Distributed-memory model checker for Hybrid LTL},
-    keywords      = {hybrid, LTL, model, checker, distributed, Haskell},
-    TeXkeywords   = {hybrid, LTL, model, checker, distributed, Haskell},
+    advisor       = {RNDr. Martin Jonáš},
+    title         = {Coinductive Formalization of SECD Machine in Agda},
+    TeXtitle      = {Coinductive Formalization of SECD Machine in Agda},
+    keywords      = {SECD Agda formalization coinduction},
+    TeXkeywords   = {SECD Agda formalization coinduction},
     abstract      = {This is the abstract of my thesis, which can
 
                      span multiple paragraphs.},
@@ -100,7 +100,7 @@
   Agda: is it a dependently-typed programming language? Is it a proof-assistant
   based on intuitionistic type theory?
 
-  \verb|¯\(°_0)/¯| Dunno, lol.
+  \verb| ¯\(°_0)/¯| Dunno, lol.
 \end{chapquote}
 Agda\parencite{norell2007towards} is a
 \section{Basics}
@@ -394,46 +394,113 @@ Now that we have defined the syntax, the next step is to give it semantics. We
 will do this in a straightforward manned by way of embedding our calculus into
 Agda.
 
-Firstly, we define the semantics of types.
+First, we define the semantics of types, by assigning Agda types to types in our calculus.
 \begin{code}
   ⟦_⟧★ : ★ → Set
   ⟦ ι ⟧★     = ℕ
   ⟦ α ⇒ β ⟧★ = ⟦ α ⟧★ → ⟦ β ⟧★
 \end{code}
+Here we choose to realize our atomic type as the type of Natural numbers. These
+are chosen for being a nontrivial type. The function type is realized
+inductively as the Agda function type.
+
+Next, we give semantics to contexts.
 \begin{code}
   ⟦_⟧C : Context → Set
   ⟦ [] ⟧C     = ⊤
   ⟦ x ∷ xs ⟧C = ⟦ x ⟧★ × ⟦ xs ⟧C
 \end{code}
-\begin{code}
-  ⟦_⟧∈ : ∀ {x xs} → x ∈ xs → ⟦ xs ⟧C → ⟦ x ⟧★
-  ⟦ here ⟧∈ (x , _)     = x
-  ⟦ there w ⟧∈ (_ , xs) = ⟦ w ⟧∈ xs
-\end{code}
+The empty context can be realized trivially by the unit type. A non-empty
+context is realized as the product type of the realization of the first element
+and a realization of the rest of the context.
+
+Now we are ready to give semantics to terms. In order to be able to proceed by
+induction with regard to the structure of the term, we must operate on open terms.
 \begin{code}
   ⟦_⟧ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
-  ⟦ var x ⟧ γ = ⟦ x ⟧∈ γ
-  ⟦ ƛ x ⟧ γ   = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
-  ⟦ f $ x ⟧ γ = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
 \end{code}
+The second argument is a realization of the context in the term, which we will
+need for variables,
 \begin{code}
-  idℕ : ℕ → ℕ
-  idℕ x = x
+  ⟦ var here ⟧ (x , _)       = x
+  ⟦ var (there x) ⟧ (_ , xs) = ⟦ var x ⟧ xs
+\end{code}
+Here we case-split on the variable, in case it is zero we take the first element
+of the context, otherwise we recurse into the context until we hit zero. Note
+that the shape of the context Γ is guaranteed here to never be empty, because the
+argument to \I{var} is a proof of membership for Γ. Thus, Agda realizes that Γ
+can never be empty and we need not bother ourselves with a case-split for the
+empty context; indeed, we would be hard-pressed to give it an implementation.
+\begin{code}
+  ⟦ ƛ x ⟧ γ                  = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
+\end{code}
+The case for lambda abstraction constructs an Agda function which will take as
+the argument a value of the corresponding type and compute the semantics for the
+lambda's body, after extending the context with the argument.
+\begin{code}
+  ⟦ f $ x ⟧ γ                = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
+\end{code}
+Finally, to give semantics to function application, we simply perform Agda
+function application on the subexpressions, after having computed their
+semantics in the current context.
 
-  _ : ⟦ I ⟧ ⋅ ≡ idℕ
+Thanks to propositional equality, we can embed tests directly into Agda code and
+see whether the terms we defined above receive the expected semantics.
+\begin{code}
+  Iℕ : ℕ → ℕ
+  Iℕ x = x
+
+  _ : ⟦ I ⟧ ⋅ ≡ Iℕ
+  _ = refl
+
+  Sℕ : (ℕ → ℕ → ℕ) → (ℕ → ℕ) → ℕ → ℕ
+  Sℕ x y z = x z (y z)
+
+  _ : ⟦ S ⟧ ⋅ ≡ Sℕ
   _ = refl
 \end{code}
+Since this thesis can only be rendered if all the Agda code has successfully
+type-checked, the fact that the reader is currently reading this paragraph means
+the semantics function as expected!
 \section{Coinduction}
+\begin{code}
+  record Thunk (A : Set) : Set where
+    coinductive
+    constructor #_
+    field
+      force : A
+  open Thunk public
+\end{code}
 \subsection{Examples of coinductive types}
 \subsubsection{Coproducts}
+\begin{code}
+  record _+_ (A : Set) (B : Set) : Set where
+    coinductive
+    field
+      injₗ : A
+      injᵣ : B
+\end{code}
 \subsubsection{Streams}
+\begin{code}
+  data Stream (A : Set) : Set where
+    _∷_ : A → Thunk (Stream A) → Stream A
+\end{code}
+\begin{code}
+  iterate : ∀ {A} → A → (A → A) → Stream A
+  iterate x f = x ∷ λ where .force → {!iterate (f x) f!}
+\end{code}
+\begin{code}
+  _ : Stream ℕ
+  _ = iterate 0 suc
+\end{code}
+\begin{code}
+\end{code}
 \subsection{Bisimilarity}
 \subsection{The Delay Monad}
 
 \begin{code}
 open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
-open import Data.Maybe using (Maybe; nothing; just; maybe)
-open import Data.Product using (Σ; ∃; ∃-syntax)
+open import Data.Maybe using (Maybe; just)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
