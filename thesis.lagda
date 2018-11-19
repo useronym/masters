@@ -76,6 +76,7 @@
 \newcommand{\A}{\AgdaArgument}
 \newcommand{\D}{\AgdaDatatype}
 \newcommand{\I}{\AgdaInductiveConstructor}
+\newcommand{\F}{\AgdaFunction}
 
 \makeatletter
 \renewcommand{\@chapapp}{}% Not necessary...
@@ -466,7 +467,6 @@ the semantics function as expected!
 \begin{code}
   record Thunk (A : Set) : Set where
     coinductive
-    constructor #_
     field
       force : A
   open Thunk public
@@ -479,6 +479,10 @@ the semantics function as expected!
     field
       injₗ : A
       injᵣ : B
+
+  t : ℕ + ℕ
+  _+_.injₗ t = {!!}
+  _+_.injᵣ t = {!!}
 \end{code}
 \subsubsection{Streams}
 \begin{code}
@@ -551,7 +555,7 @@ _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
-We start by defining the type of constants our machine will recognize. We will
+We start by defining the atomic constants our machine will recognize. We will
 limit ourselves to booleans and integers.
 \begin{code}
 data Const : Set where
@@ -567,13 +571,12 @@ data Type : Set where
   _⇒_ : Type → Type → Type
 infixr 15 _⇒_
 \end{code}
-Firstly, t𝟎 are types corresponding to the constants we have already defined
-above. Then, we also introduce a product type and a list type. Finally, t𝟎 is
+Firstly, there are types corresponding to the constants we have already defined
+above. Then, we also introduce a product type and a list type. Finally, there is
 the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 
-Now we can define the type assignment of constants.
+Now we define the type assignment of constants.
 \begin{code}
--- Assignment of types b constants.
 typeof : Const → Type
 typeof true    = boolT
 typeof false   = boolT
@@ -585,7 +588,13 @@ Stack   = List Type
 Env     = List Type
 FunDump = List Type
 \end{code}
+For now, these only store the information regarding the types of the values in
+the machine. Later, when defining semantics, we will give realizations to these,
+similarly to how we handled contexts in the formalization of Simply Typed λ
+Calculus in ?.
 
+Finally, we define the state as a record storing the stack, environment, and the
+function dump.
 \begin{code}
 record State : Set where
   constructor _#_#_
@@ -594,39 +603,118 @@ record State : Set where
     e : Env
     f : FunDump
 \end{code}
+Note that, unlike in the standard presentation of SECD Machines which we saw in
+chapter ?, here the state does not include the code. This is because we are
+aiming for a version of SECD with typed assembly code. We will define code in
+what follows.
 \subsection{Typing relation}
+Since we aim to have typed assembly, we have to take a different approach to
+defining code. We will define a binary relation, which determines how a state of
+a certain shape is mutated following the execution of an instruction.
+
+We will have two versions of this relation: first one is the single-step
+relation, the second one is the transitive closure of the first one using
+\D{Path}.
 \begin{code}
-infix 5 ⊢_↝_
 infix 5 ⊢_⊳_
+infix 5 ⊢_↝_
+\end{code}
+Their definitions need to be mutually recursive, because certain instructions —
+defined in the single-step relation — need to refer to whole programs, a concept
+captured by the multi-step relation.
+\begin{code}
 mutual
   ⊢_↝_ : State → State → Set
   ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ s₁ s₂
+\end{code}
+Here there is nothing surprising, we use \D{Path} to define the multi-step
+relation.
 
+Next, we define the single-step relation. As mentioned before, this relation
+captures how one state might change into another.
+\begin{code}
   data ⊢_⊳_ : State → State → Set where
+\end{code}
+Here we must define all the instructions our machine should handle. We will start
+with the simpler ones.
+\begin{code}
+    ldc  : ∀ {s e f}
+         → (const : Const)
+         → ⊢ s # e # f ⊳ (typeof const ∷ s) # e # f
+\end{code}
+Instruction \I{ldc} loads a constant which is embedded in it. It poses no
+restrictions on the state of the machine and mutates the state by pushing the
+constant on the stack.       
+\begin{code}
+    ld   : ∀ {s e f a}
+         → (a ∈ e)
+         → ⊢ s # e # f ⊳ (a ∷ s) # e # f
+\end{code}
+Instruction \I{ld} loads a value of type \A{a} from the environment and puts it
+on the stack. It requires a proof that this value is, indeed, in the
+environment.
+\begin{code}
     ldf  : ∀ {s e f a b}
          → (⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f))
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
 \end{code}
+The \I{ldf} instruction is considerably more involved. It loads a function of
+the type \I{a ⇒ b} and puts it on the stack. Note how we use the multi-step
+relation here. In addition, the code we are loading also has to be of a certain
+shape to make it a function: the argument it was called with must be put in the
+environment, and the function dump is to be extended with the type of the
+function to permit recursive calls to itself.
+
+Once a function is loaded, we may apply it,
 \begin{code}
-    lett : ∀ {s e f x}
-         → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     ap   : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
-    rap  : ∀ {s e f a b}
-         → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
+\end{code}
+\I{ap} requires that a function and it's argument are on the stack. After it has
+run, the returning value from the function will be put on the stack in their
+stead. The type of this instruction is fairly simple; the difficult part awaits
+us further on in implementation.
+\begin{code}
+    rtn  : ∀ {s e a b f}
+         → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
+\end{code}
+Return is an instruction we are to use at the end of a function in order to get
+the machine state into the one required by \I{ldf}.
+
+Next, let us look at recursive calls.
+\begin{code}
     ldr  : ∀ {s e f a b}
          → (a ⇒ b ∈ f)
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
-    rtn  : ∀ {s e a b f}
-         → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
+\end{code}
+\I{ldr} loads a function for recursive application from the function dump. The
+function in question might be the one we are currently in, or it might be many
+scopes above the current function. In either case, the type of the function is
+hereby guaranteed.
+\begin{code}
+    rap  : ∀ {s e f a b}
+         → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
+\end{code}
+This instruction looks exactly the same way as \I{ap}. The difference will be in
+implementation, as this one will attempt to perform tail call elimination.
+\begin{code}
+    if   : ∀ {s s' e f}
+         → ⊢ s # e # f ↝ s' # e # f
+         → ⊢ s # e # f ↝ s' # e # f
+         → ⊢ (boolT ∷ s) # e # f ⊳ s' # e # f
+\end{code}
+The if instruction requires that a boolean value be present on the stack. Based
+on this, it decides which branch to execute. Here we hit on one limitation of
+the typed presentation: both branches must finish a stack of the same shape,
+otherwise it would be unclear how the stack looks like after this instruction.
+
+The remaining instructions are fairly simple in that they only manipulate the
+stack. Maybe we will show you only a few of them and hide the rest later.
+\begin{code}
+    lett : ∀ {s e f x}
+         → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
-    ldc  : ∀ {s e f}
-         → (const : Const)
-         → ⊢ s # e # f ⊳ (typeof const ∷ s) # e # f
-    ld   : ∀ {s e f val}
-         → (val ∈ e)
-         → ⊢ s # e # f ⊳ (val ∷ s) # e # f
     flp  : ∀ {s e f a b}
          → ⊢ (a ∷ b ∷ s) # e # f ⊳ (b ∷ a ∷ s) # e # f
     cons : ∀ {s e f a}
@@ -651,51 +739,51 @@ mutual
          → ⊢ (a ∷ a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
     not  : ∀ {s e f}
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
-    if   : ∀ {s s' e e' f f'}
-         → ⊢ s # e # f ↝ s' # e' # f'
-         → ⊢ s # e # f ↝ s' # e' # f'
-         → ⊢ (boolT ∷ s) # e # f ⊳ s' # e' # f'
-
+\end{code}
+\subsubsection{Derived instructions}
+For the sake of sanity we will also define what amounts to simple programs,
+masquerading as instructions, for use in more complex programs later. The chief
+limitation here is that since these are members of the multi-step relation, we
+have to be mindful when using them and use concatenation of paths, \F{_>+>_}, as
+necessary.
+\begin{code}
 nil? : ∀ {s e f a} → ⊢ (listT a ∷ s) # e # f ↝ (boolT ∷ s) # e # f
 nil? = nil >| eq?
 
 loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
 loadList [] = nil >> ∅
 loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
-
--- This syntactic sugar makes writing out SECD types easier.
--- Doesn't play nice with Agda polymorphism?
---withEnv : Env → Type → Type
---withEnv e (pairT t u)       = pairT (withEnv e t) (withEnv e u)
---withEnv e (funT a b)        = let aWithE = (withEnv e a) in closureT aWithE (withEnv (aWithE ∷ e) b) e
---withEnv e (listT t)         = listT (withEnv e t)
---withEnv e intT              = intT
---withEnv e boolT             = boolT
---withEnv e (closureT a b e') = closureT a b e'
-
--- 2 + 3
+\end{code}
+The first one is simply the check for an empty list. The second one is more
+interesting, it constructs a sequence of instructions which will load a list of
+natural numbers.
+\subsection{Examples}
+In this section we present some examples of SECD programs in our current
+formalism. Starting with trivial ones, we will work our way up to using full
+capabilities of the machine.
+\begin{code}
 2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 2+3 =
     ldc (int (+ 2))
  >> ldc (int (+ 3))
  >| add
-
--- λx.x + 1
+\end{code}
+\begin{code}
 inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
 inc =
     ld 𝟎
  >> ldc (int (+ 1))
  >> add
  >| rtn
-
--- Apply 2 b the above.
+\end{code}
+\begin{code}
 inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
     ldf inc
  >> ldc (int (+ 2))
  >| ap
-
--- Partial application test.
+\end{code}
+\begin{code}
 λTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 λTest =
      ldf -- First, we construct the curried function.
@@ -705,13 +793,16 @@ inc2 =
   >> ap              -- Apply b curried function. Results in a closure.
   >> ldc (int (+ 2)) -- Load second argument.
   >| ap              -- Apply b closure.
-
+\end{code}
+\begin{code}
 -- λa.λb.a+b
 -- withEnv test. Below is what withEnv desugars b.
 -- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
 
+\end{code}
+\begin{code}
 -- Shit getting real.
 foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
 -- Below is the Agda-polymorphic version which does not typecheck. Something b do with how `withEnv e b` does not normalize further.
