@@ -21,7 +21,7 @@
 %%\usepackage{yfonts}
 %%\usepackage{unicode-math}
 %%\usepackage{xunicode}
-\usepackage[main=english]{babel} 
+\usepackage[main=english]{babel}
 
 \thesissetup{
     date          = \the\year/\the\month/\the\day,
@@ -95,6 +95,8 @@
 \begin{chapquote}{R. Feynman}
   What I cannot create, I do not understand.
 \end{chapquote}
+\section{History}
+\section{Curry-Howard correspondence}
 
 \chapter{Agda}
 \begin{chapquote}{From the topic of the official Agda IRC channel}
@@ -103,12 +105,36 @@
 
   \verb| ¯\(°_0)/¯| Dunno, lol.
 \end{chapquote}
-Agda\parencite{norell2007towards} is a
+Agda\parencite{norell2007towards} is a functional programming language with
+first-class support for dependent types. As per the Curry-Howard correspondence,
+well-typed programs in Agda can also be understood as proofs of inhabitance of
+their correspoinding types; types being understood as propositions.
+
+In what follows we will take a look at some concepts in Agda, which will be used
+in the formalization in chapter ?. A reader familiar with Agda may feel free to
+skip the rest of this chapter.
 \section{Basics}
 In this section, we present a few simple types in order to get accustomed to the
 syntax of Agda by way of example.
+
+Agda has strong support for mixfix operators\footnote{Operators which can have
+  multiple name parts and be infix, prefix, postfix, or
+  closed\parencite{mixfix}.} and Unicode identifiers. This often allows for
+developing a notation close to what one has come to expect in mathematics.
+However, with great power comes great responsibility and one should be careful
+to not abuse the notation too much, a problem exacerbated by the fact that
+operator overloading, as used excessively in mathematics, is not directly
+possible.
+
+As an aside, there is also some support for proof automation in
+Agda\parencite{auto}, however from the author's experience the usability of this
+tool is limited to simple cases. In contrast with tools such as
+Coq\parencite{barras1997coq}, Agda suffers from lower degree of automation: there are no
+built-in tactics, though their implementation is possible through
+reflection\parencite{agda-manual}.
+
 \subsection{Trivial Types}
-The simples type is a type which is trivially inhabited by a single value. This
+A type which is trivially inhabited by a single value, This
 type is often refered to as \textit{Top} or \textit{Unit}. In Agda,
 \begin{code}
 data ⊤ : Set where
@@ -149,16 +175,15 @@ Boolean values.
 \end{code}
 Here we utilized pattern matching to split on the argument and
 flipped one into the other. Note the underscore \texttt{\_} in the name declaration of this
-function: it symbolizes where the argument is to be
-expected. Agda has a strong support for mixfix operators and we will see more
-examples of this later.
+function: it symbolizes where the argument is to be expected and declares it as
+a mixfix operator.
 
 Another function we can define is the conjunction of two boolean values, using a
 similar approach.
 \begin{code}
 _∧_ : Bool → Bool → Bool
 tt ∧ b = b
-ff ∧ b = ff
+ff ∧ _ = ff
 \end{code}
 \subsection{Products}
 To define the product type, it is customary to use a record. This will give us
@@ -205,7 +230,7 @@ is simply the right argument. If the left argument is a successor to some number
 In this section, we will take a short look at one of the main features of
 intuitionistic type theory, namely, the identity type. This type allows us to
 state the proposition that two values of some data type are \textit{equal}. The
-concept of \textit{equal} here is that both of the values are convertible to the
+meaning of \textit{equal} here is that both of the values are convertible to the
 same value through reductions. This is the concept of propositional equality.
 Compare this with definitional equality, which only allows us to express
 when two values have the same syntactic representation. For example,
@@ -221,7 +246,7 @@ We can define propositional equality in Agda as follows.
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 open import Data.Nat using (ℕ; zero; suc) renaming (_≟_ to _≟ℕ_)
 \end{code}
-The equality type is polymorhic in some other underlying type, \AgdaArgument{A}.
+The equality type is polymorphic in some other underlying type, \AgdaArgument{A}.
 The only way we have to construct values of this type is by the constructor
 \AgdaInductiveConstructor{refl}, which says that each value is propositionaly
 equal to itself. Symmetry and transitivity of \AgdaDatatype{\_≡\_} are theorems
@@ -316,8 +341,8 @@ infix 10 _∈_
 \end{code}
 The first constructor says that an element is present in a list if that element
 is the head of the list. The second constructor says that if we already know
-that our element \A{x} is in a list, we can extend the list with another element
-and \A{x} will still be present in the new list.
+that our element \A{x} is in a list, we can extend the list with some other
+element \A{a} and \A{x} will still be present in the new list.
 
 Now we can also define a function which, given a proof that an element is in a
 list, returns the aforementioned element.
@@ -388,8 +413,8 @@ calculus; there is no polymorhism in the calculus itself.
 
 The advantage of this presentation is that only well-typed syntax is
 representable. Thus, whenever we work with a term of our calculus, it is
-guaranteed to be well-typed, which often simplifiest things. We will see an
-example of this in the next section.
+guaranteed to be well-typed, which often simplifies things. We will see an
+example of this in what follows.
 \subsubsection{Semantics by Embedding into Agda}
 Now that we have defined the syntax, the next step is to give it semantics. We
 will do this in a straightforward manned by way of embedding our calculus into
@@ -403,7 +428,7 @@ First, we define the semantics of types, by assigning Agda types to types in our
 \end{code}
 Here we choose to realize our atomic type as the type of Natural numbers. These
 are chosen for being a nontrivial type. The function type is realized
-inductively as the Agda function type.
+inductively as an Agda function type.
 
 Next, we give semantics to contexts.
 \begin{code}
@@ -412,8 +437,8 @@ Next, we give semantics to contexts.
   ⟦ x ∷ xs ⟧C = ⟦ x ⟧★ × ⟦ xs ⟧C
 \end{code}
 The empty context can be realized trivially by the unit type. A non-empty
-context is realized as the product type of the realization of the first element
-and a realization of the rest of the context.
+context is realized as the product of the realization of the first element
+and, inductively, a realization of the rest of the context.
 
 Now we are ready to give semantics to terms. In order to be able to proceed by
 induction with regard to the structure of the term, we must operate on open terms.
@@ -464,42 +489,9 @@ Since this thesis can only be rendered if all the Agda code has successfully
 type-checked, the fact that the reader is currently reading this paragraph means
 the semantics function as expected!
 \section{Coinduction}
-\begin{code}
-  record Thunk (A : Set) : Set where
-    coinductive
-    field
-      force : A
-  open Thunk public
-\end{code}
-\subsection{Examples of coinductive types}
-\subsubsection{Coproducts}
-\begin{code}
-  record _+_ (A : Set) (B : Set) : Set where
-    coinductive
-    field
-      injₗ : A
-      injᵣ : B
-
-  t : ℕ + ℕ
-  _+_.injₗ t = {!!}
-  _+_.injᵣ t = {!!}
-\end{code}
-\subsubsection{Streams}
-\begin{code}
-  data Stream (A : Set) : Set where
-    _∷_ : A → Thunk (Stream A) → Stream A
-\end{code}
-\begin{code}
-  iterate : ∀ {A} → A → (A → A) → Stream A
-  iterate x f = x ∷ λ where .force → {!iterate (f x) f!}
-\end{code}
-\begin{code}
-  _ : Stream ℕ
-  _ = iterate 0 suc
-\end{code}
+\parencite{coinduction}
 \begin{code}
 \end{code}
-\subsection{Bisimilarity}
 \subsection{The Delay Monad}
 
 \begin{code}
@@ -538,16 +530,20 @@ The first constructor creates an empty path. The second takes an
 already-existing path and prepends to it a value, given a proof that this value
 is in relation with the first element of the already-existing path. The reader
 may notice a certain similarity to linked lists; indeed if for the relation we
-take the universal one for our data type \AgdaDatatype{A}, then we obtain a type
-that's isomorphic to linked lists.
+take the universal one for our data type \AgdaDatatype{A}, we stand to obtain a
+type that's isomorphic to linked lists.
 
-We also define a shorthand for constructing the end of a path.
+We can view this type as the type of finite paths through a graph connected
+according to the binary relation.
+
+We also define a shorthand for constructing the end of a path out of two edges.
+We will use this in examples later on.
 \begin{code}
 _>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
 a >| b = a >> b >> ∅
 \end{code}
-Furthermore, we can also append two paths, given that the end of the first path
-matches the start of the second one.
+Furthermore, we can also concatenate two paths, given that the end of the first
+path matches the start of the second one.
 \begin{code}
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 ∅ >+> r = r
@@ -605,11 +601,10 @@ record State : Set where
 \end{code}
 Note that, unlike in the standard presentation of SECD Machines which we saw in
 chapter ?, here the state does not include the code. This is because we are
-aiming for a version of SECD with typed assembly code. We will define code in
-what follows.
+aiming for a version of SECD with typed assembly code. We will define code next
 \subsection{Typing relation}
 Since we aim to have typed assembly, we have to take a different approach to
-defining code. We will define a binary relation, which determines how a state of
+defining code. We will define a binary relation which will determine how a state of
 a certain shape is mutated following the execution of an instruction.
 
 We will have two versions of this relation: first one is the single-step
@@ -659,7 +654,7 @@ environment.
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
 \end{code}
 The \I{ldf} instruction is considerably more involved. It loads a function of
-the type \I{a ⇒ b} and puts it on the stack. Note how we use the multi-step
+the type \A{a} \I{⇒} \A{b} and puts it on the stack. Note how we use the multi-step
 relation here. In addition, the code we are loading also has to be of a certain
 shape to make it a function: the argument it was called with must be put in the
 environment, and the function dump is to be extended with the type of the
@@ -670,7 +665,7 @@ Once a function is loaded, we may apply it,
     ap   : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
 \end{code}
-\I{ap} requires that a function and it's argument are on the stack. After it has
+\I{ap} requires that a function and its argument are on the stack. After it has
 run, the returning value from the function will be put on the stack in their
 stead. The type of this instruction is fairly simple; the difficult part awaits
 us further on in implementation.
@@ -679,7 +674,8 @@ us further on in implementation.
          → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
 \end{code}
 Return is an instruction we are to use at the end of a function in order to get
-the machine state into the one required by \I{ldf}.
+the machine state into the one required by \I{ldf}. It throws away what is on
+the stack, with the exception of the return value.
 
 Next, let us look at recursive calls.
 \begin{code}
@@ -687,10 +683,11 @@ Next, let us look at recursive calls.
          → (a ⇒ b ∈ f)
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
 \end{code}
-\I{ldr} loads a function for recursive application from the function dump. The
-function in question might be the one we are currently in, or it might be many
-scopes above the current function. In either case, the type of the function is
-hereby guaranteed.
+\I{ldr} loads a function for recursive application from the function dump. We
+can be many scopes deep in the function and we use a De Bruijn index here to
+count the scopes, same as we do with the environment. This is important e.g. for
+curried functions where we want to be able to load the topmost function, not one that
+was already partially applied.
 \begin{code}
     rap  : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
@@ -705,8 +702,9 @@ implementation, as this one will attempt to perform tail call elimination.
 \end{code}
 The if instruction requires that a boolean value be present on the stack. Based
 on this, it decides which branch to execute. Here we hit on one limitation of
-the typed presentation: both branches must finish a stack of the same shape,
-otherwise it would be unclear how the stack looks like after this instruction.
+the typed presentation: both branches must finish with a stack of the same
+shape, otherwise it would be unclear what the stack looks like after this
+instruction.
 
 The remaining instructions are fairly simple in that they only manipulate the
 stack. Maybe we will show you only a few of them and hide the rest later.
@@ -744,7 +742,7 @@ stack. Maybe we will show you only a few of them and hide the rest later.
 For the sake of sanity we will also define what amounts to simple programs,
 masquerading as instructions, for use in more complex programs later. The chief
 limitation here is that since these are members of the multi-step relation, we
-have to be mindful when using them and use concatenation of paths, \F{_>+>_}, as
+have to be mindful when using them and use concatenation of paths, \F{\_>+>\_}, as
 necessary.
 \begin{code}
 nil? : ∀ {s e f a} → ⊢ (listT a ∷ s) # e # f ↝ (boolT ∷ s) # e # f
@@ -761,6 +759,8 @@ natural numbers.
 In this section we present some examples of SECD programs in our current
 formalism. Starting with trivial ones, we will work our way up to using full
 capabilities of the machine.
+
+The first example loads two constants and adds them.
 \begin{code}
 2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 2+3 =
@@ -768,14 +768,24 @@ capabilities of the machine.
  >> ldc (int (+ 3))
  >| add
 \end{code}
+The second example constructs a function which expects an integer and increases
+it by one before returning it.
 \begin{code}
-inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f) ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
+inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f)
+                ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
 inc =
     ld 𝟎
  >> ldc (int (+ 1))
  >> add
  >| rtn
 \end{code}
+Here we can see the type of the expression getting more complicated: we use
+polymorphism to make make sure we can load this function in any environment, in
+the environment we have to declare that an argument of type \I{intT} is
+expected, and lastly the function dump has to be expanded with the type of this
+function.
+
+In the next example we load the above function and apply it to the integer 2.
 \begin{code}
 inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
@@ -783,62 +793,80 @@ inc2 =
  >> ldc (int (+ 2))
  >| ap
 \end{code}
+In the next example we test partial application.
 \begin{code}
 λTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 λTest =
-     ldf -- First, we construct the curried function.
+     ldf
        (ldf
          (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
-  >> ldc (int (+ 1)) -- Load first argument.
-  >> ap              -- Apply b curried function. Results in a closure.
-  >> ldc (int (+ 2)) -- Load second argument.
-  >| ap              -- Apply b closure.
+  >> ldc (int (+ 1))
+  >> ap
+  >> ldc (int (+ 2))
+  >| ap
 \end{code}
+First we construct a function which constructs a function which adds the two
+values in the environment. The types of these two are inferred to be integers by
+Agda, as this is what the \I{add} instruction requires. Then, we load an apply
+the constant 1. This results in another function, partially applied. Lastly, we
+load 2 and apply.
+
+In the example \F{inc} we saw how we could define a function. In the next
+example we also construct a function, however this time we embed the instruction
+\I{ldf} in our definition directly, as this simplifies the type considerably.
 \begin{code}
--- λa.λb.a+b
--- withEnv test. Below is what withEnv desugars b.
--- plus : ∀ {e f} → ⊢ [] # e # f ↝ [ closureT intT (closureT intT intT (intT ∷ e)) e ] # e # f
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
-
 \end{code}
+The only consideration is that when we wish to load this function in another
+program, rather than writing \I{ldf} \F{plus} we must only write \F{plus}.
+
+Lastly, a more involved example: that of a folding function. Here we test all
+capabilities of the machine.
 \begin{code}
--- Shit getting real.
-foldl : ∀ {e f} → ⊢ [] # e # f ⊳ [ ((intT ⇒ intT ⇒ intT) ⇒ intT ⇒ (listT intT) ⇒ intT) ] # e # f
--- Below is the Agda-polymorphic version which does not typecheck. Something b do with how `withEnv e b` does not normalize further.
--- foldl : ∀ {a b e f} → ⊢ [] # e # f ↝ [ withEnv e ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b)] # e # f
--- Explicitly typing out the polymorhic version, however, works:
---foldl : ∀ {a b e f} → ⊢ [] # e # f ⊳ [
---         closureT                            -- We construct a function,
---             (closureT b (closureT a b (b ∷ e)) e) -- which takes the folding function,
---             (closureT b                     -- returning a function which takes acc,
---               (closureT (listT a)           -- returning a function which takes the list,
---                 b                           -- and returns the acc.
---                 (b ∷ (closureT b (closureT a b (b ∷ e)) e) ∷ e))
---               ((closureT b (closureT a b (b ∷ e)) e) ∷ e))
---             e
---         ] # e # f
--- BDO: figure out what's going on 𝟎 if has time.
+foldl : ∀ {e f a b} → ⊢ [] # e # f
+                      ⊳ [ ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b) ] # e # f
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
   where
     body =
-         ld 𝟎                   -- Load list.
-      >> nil?                      -- Is it empty?
-      >+> if (ld 𝟏 >| rtn) -- If so, load & return acc.
-          (ld 𝟐     -- If not, load folding function.
-        >> ld 𝟏           -- Load previous acc.
-        >> ap                      -- Partially apply folding function.
-        >> ld 𝟎                 -- Load list.
-        >> head                    -- Get the first element.
-        >> ap                      -- Apply, yielding new acc.
-        >> ldr 𝟐     -- Partially-tail apply the folding function b us.
-        >> ld 𝟐     -- Load the folding function.
-        >> ap >> flp >> ap >> ld 𝟎 >> tail >| rap) >> ∅                      -- Apply acc, result in another closure.
---        >> ap                      -- Apply acc, result in another closure.
---        >> ld 𝟎                 -- Load list.
---        >> tail                    -- Drop the first element we just processed.
---        >| rap)                      -- Finally apply the last argument, that rest of the list.
+         ld 𝟎
+      >> nil?
+      >+> if (ld 𝟏 >| rtn)
+          (ld 𝟐
+        >> ld 𝟏
+        >> ap
+        >> ld 𝟎
+        >> head
+        >> ap
+        >> ldr 𝟐
+        >> ld 𝟐
+        >> ap
+        >> flp
+        >> ap
+        >> ld 𝟎
+        >> tail
+        >| rap)
+      >> ∅
+\end{code}
+Here is what's going on: to start, we load the list we are folding. We check
+whether it is empty: if so, the accumulator \F{𝟏} is loaded and returned. On the other
+hand, if it list is not empty, we start with loading the folding function \F{𝟐}.
+Next, we load the accumulator \F{𝟏}. We perform partial application. Next, we
+load the list \F{𝟎} and obtain it's first element with \I{head}. We apply to the
+already partially-applied folding function, yielding a new accumulator on the
+stack.
 
+Now we need to make the recursive call: we load ourselves with \I{ldr} \F{𝟐}.
+Next we need to apply all three arguments: we start with loading the folding
+function \F{𝟐} and applying it. We are now in a state where the partially
+applied foldl is on the top of the stack and the new accumulator is right below
+it; we flip\footnote{Note we could have reorganized the instructions in a manner
+  so that this flip would not be necessary, indeed we will see that there is no
+  need for this instruction in section ?} the two and apply. Lastly, we load
+the list, drop the first element with \I{tail} and perform recursive application
+with tail-call elimination.
+\section{Semantics}      
+\begin{code}
 mutual
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ     = ⊤
@@ -967,8 +995,9 @@ foldTest =
 
 _ : runℕ foldTest 29 ≡ just (+ 10)
 _ = refl
-
-
+\end{code}
+\section{Compilation from a higher-level language}      
+\begin{code}
 Ctx = List Type
 
 infix 2 _×_⊢_

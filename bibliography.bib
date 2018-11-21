@@ -17,7 +17,7 @@
   organization={Elsevier}
 }
 
-@InProceedings{10.1007/978-3-319-19797-5_14,
+@InProceedings{auto,
   author="Kokke, Pepijn and Swierstra, Wouter",
   editor="Hinze, Ralf and Voigtl{\"a}nder, Janis",
   title="Auto in Agda",
@@ -28,4 +28,41 @@
   pages="276--301",
   abstract="As proofs in type theory become increasingly complex, there is a growing need to provide better proof automation. This paper shows how to implement a Prolog-style resolution procedure in the dependently typed programming language Agda. Connecting this resolution procedure to Agda's reflection mechanism provides a first-class proof search tactic for first-order Agda terms. As a result, writing proof automation tactics need not be different from writing any other program.",
   isbn="978-3-319-19797-5"
+}
+
+@article{coinduction,
+  Author = {Andreas Abel and James Chapman},
+  Title = {Normalization by Evaluation in the Delay Monad: A Case Study for Coinduction via Copatterns and Sized Types},
+  Year = {2014},
+  Eprint = {arXiv:1406.2059},
+  Howpublished = {EPTCS 153, 2014, pp. 51-67},
+  Doi = {10.4204/EPTCS.153.4},
+}
+
+@InProceedings{mixfix,
+author="Danielsson, Nils Anders and Norell, Ulf",
+editor="Scholz, Sven-Bodo and Chitil, Olaf",
+title="Parsing Mixfix Operators",
+booktitle="Implementation and Application of Functional Languages",
+year="2011",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="80--99",
+abstract="A simple grammar scheme for expressions containing mixfix operators is presented. The scheme is parameterised by a precedence relation which is only restricted to be a directed acyclic graph; this makes it possible to build up precedence relations in a modular way. Efficient and simple implementations of parsers for languages with user-defined mixfix operators, based on the grammar scheme, are also discussed. In the future we plan to replace the support for mixfix operators in the language Agda with a grammar scheme and an implementation based on this work.",
+isbn="978-3-642-24452-0"
+}
+
+@manual{agda-manual,
+  title        = {Agda Language Reference},
+  author       = {Ulf Norell and Andreas Abel and Nils Anders Danielsson and Makoto Takeyama and Catarina Coquand and Stevan Andjelkovic and Marcin Benke and Jean-Philippe Bernardy and James Chapman and Jesper Cockx and Dominique Devriese and Peter Divanski and Fredrik Nordvall Forsberg and Olle Fredriksson and Daniel Gustafsson and Philipp Hausmann and Patrik Jansson and Alan Jeffrey and Wolfram Kahl and Fredrik Lindblad and Francesco Mazzoli and Stefan Monnier and Darin Morrison and Guilhem Moulin and Nicolas Pouillard and Andrés Sicard-Ramírez and Andrea Vezzosi},
+  year         = 2018,
+  url          = {https://agda.readthedocs.io/en/v2.5.4.2/language/index.html},
+  version      = {2.5.4.2}
+}
+
+@phdthesis{barras1997coq,
+  title={The Coq proof assistant reference manual: Version 6.1},
+  author={Barras, Bruno and Boutin, Samuel and Cornes, Cristina and Courant, Judica{\"e}l and Filliatre, Jean-Christophe and Gimenez, Eduardo and Herbelin, Hugo and Huet, Gerard and Munoz, Cesar and Murthy, Chetan and others},
+  year={1997},
+  school={Inria}
 }
