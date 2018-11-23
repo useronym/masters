@@ -515,15 +515,30 @@ open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind
 \end{chapquote}
 \section{Introduction}
 The \textbf{S}tack, \textbf{E}nvironment, \textbf{C}ontrol, \textbf{D}ump
-machine was first outlined by Landin in \parencite{landin1964mechanical}. It was
-regarded as an underlying model of execution for a family of languages, namely,
+machine is a stack-based, call-by-value abstract execution machine that was
+first outlined by Landin in \parencite{landin1964mechanical}. It was regarded as
+an underlying model of execution for a family of languages, specifically,
 languages based on the abstract formalism of λ calculus.
 
-More recent treatments of the subject aim to give a more formal specification to
-the machine, e.g. \parencite{danvy2004rational}.
+Other machines have since been proposed, some derived from SECD, others not.
+Notable are the Krivine machine\parencite{krivine2007call}, which implements a
+call-by-name semantics, and the ZAM (Zinc abstract machine), which serves as a
+backend for the OCaml strict functional programming language
+\parencite{leroy1990zinc}.
 
-This section is meant as an intuitive overview of the formalism. We will present
-the machine and give a hint at its semantics.
+For an overview of different kinds of SECD machines, including a modern
+presentation of the standard call-by-value, and also call-by-name and
+call-by-need version of the machine, and a more modern version of the machine
+which foregoes the dump in favour of using the stack for the purposes of the
+dump, see \parencite{danvy2004rational}.
+
+There have also been hardware implementations of this formalism, e.g.
+\parencite{graham1989secd, secdchip}, though it is unclear to the author whether
+the issue with verifying the garbage collector mentioned in the latter work was
+ever fully addressed.
+
+This chapter is meant as an intuitive overview of the formalism. We will present
+the machine with the standard call-by-value semantics.
 \section{Definition}
 Faithful to its name, the machine is made up of four components:
 \begin{itemize}
@@ -535,12 +550,42 @@ Faithful to its name, the machine is made up of four components:
   \item Dump -- serves as a baggage place for storing the current context when a
     function call is performed.
 \end{itemize}
-More modern treatments of SECD sometimes present the machine without the fourth
-component, the dump. Instead, the current context is stored on the stack before
-a function call dispatch, and the function is trusted to not modify the values
-during its execution. Af
+Regarding the memory model, all four items defined here are meant to be realized
+as linked lists.
 \section{Execution}
-\section{Modern approaches}
+Execution of the machine consists of reading instructions from the Control and
+modifying the state of the machine as necessary. The basic instructions are
+\begin{itemize}
+  \item \texttt{ld x} –- load the value bound to the identifier \texttt{x} from
+    the environment and put it on the stack;
+  \item \texttt{ldf f} –- load the sequence of instructions \texttt{f} in the
+    current environment, constructing a closure, and put it on the stack;
+  \item \texttt{ap} –- given that a closure and a value are present on the top
+    of the stack, perform function application and put the return value on the
+    stack;
+  \item \texttt{rtn} –- return from a function, restoring control to the caller.
+\end{itemize}
+To see how the above instructions transform the machine state, please refer to
+Figure \ref{secd}.
+
+\newcolumntype{L}{>{$}l<{$}}
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{L | L | L | L || L | L | L | L}
+    \multicolumn{4}{c||}{Before} & \multicolumn{4}{c}{After} \\
+    \midrule
+    s & e & ld\ x , c & d & e(x) , s & e & c & d \\
+    s & e & ldf\ f , c & d & f[e] , s & e & c & d \\
+    x , f[e'] , s & e & ap\ x , c & d & ∅ & e' & f & (s , e , c) , d \\
+    y , s & e & rtn\ x , c & (s' , e' , c') , d & y , s' & e' & c' & d \\
+  \end{tabular}
+  \caption{The above table presents the transition relation of the SECD Machine.
+  On the left is the state of the machine before the execution of a single
+  instruction. On the right is the newly mutated state. \textbf{$e(x)$} is the
+  value in $e$ stored under the identifier $x$. \textbf{$f[e]$} is the closure
+  of $f$ in the environment $e$. \textbf{$∅$} is the empty stack.}
+  \label{secd}
+\end{figure}
 
 \chapter{Formalization}
 In this chapter, we approach the main topic of this thesis. We will formalize a
