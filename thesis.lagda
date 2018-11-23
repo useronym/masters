@@ -85,7 +85,7 @@
    \def\chapquote@author{#2}%
    \parshape 1 \@tempdima \dimexpr\textwidth-2\@tempdima\relax%
    \itshape}
-  {\par\normalfont\hfill---\ \chapquote@author\hspace*{\@tempdima}\par\bigskip}
+  {\par\medskip\normalfont\hfill---\ \chapquote@author\hspace*{\@tempdima}\par\bigskip}
 \makeatother
 
 \begin{document}
@@ -505,6 +505,43 @@ open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind
 \end{code}
 
 \chapter{SECD Machine}
+\begin{chapquote}{Christopher Strachey, discussion following \parencite{landin1966next}, 1966}
+  Any language which by mere chance of the way it is written makes it extremely
+  difficult to write compositions of functions and very easy to write sequences of
+  commands will, of course, in an obvious psychological way, hinder people from
+  using descriptive rather than imperative features. In the long run, I think the
+  effect will delay our understanding of basic similarities, which underlie
+  different sorts of programs and different ways of solving problems.
+\end{chapquote}
+\section{Introduction}
+The \textbf{S}tack, \textbf{E}nvironment, \textbf{C}ontrol, \textbf{D}ump
+machine was first outlined by Landin in \parencite{landin1964mechanical}. It was
+regarded as an underlying model of execution for a family of languages, namely,
+languages based on the abstract formalism of λ calculus.
+
+More recent treatments of the subject aim to give a more formal specification to
+the machine, e.g. \parencite{danvy2004rational}.
+
+This section is meant as an intuitive overview of the formalism. We will present
+the machine and give a hint at its semantics.
+\section{Definition}
+Faithful to its name, the machine is made up of four components:
+\begin{itemize}
+  \item Stack -- stores values operated on. Atomic operations, such as integer
+    addition, are performed here;
+  \item Environment -- stores immutable assignments, such as function arguments and
+    values bound with the \textit{let} construct;
+  \item Control -- stores a list of instructions awaiting execution;
+  \item Dump -- serves as a baggage place for storing the current context when a
+    function call is performed.
+\end{itemize}
+More modern treatments of SECD sometimes present the machine without the fourth
+component, the dump. Instead, the current context is stored on the stack before
+a function call dispatch, and the function is trusted to not modify the values
+during its execution. Af
+\section{Execution}
+\section{Modern approaches}
+
 \chapter{Formalization}
 In this chapter, we approach the main topic of this thesis. We will formalize a
 SECD machine in Agda, with typed syntax, and then proceed to define the
@@ -832,20 +869,11 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
          ld 𝟎
       >> nil?
       >+> if (ld 𝟏 >| rtn)
-          (ld 𝟐
-        >> ld 𝟏
-        >> ap
-        >> ld 𝟎
-        >> head
-        >> ap
-        >> ldr 𝟐
-        >> ld 𝟐
-        >> ap
-        >> flp
-        >> ap
-        >> ld 𝟎
-        >> tail
-        >| rap)
+          (ld 𝟐 >> ld 𝟏 >> ap
+        >> ld 𝟎 >> head >> ap
+        >> ldr 𝟐 >> ld 𝟐 >> ap
+        >> flp >> ap
+        >> ld 𝟎 >> tail >| rap)
       >> ∅
 \end{code}
 Here is what's going on: to start, we load the list we are folding. We check
