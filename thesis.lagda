@@ -110,15 +110,21 @@ first-class support for dependent types. As per the Curry-Howard correspondence,
 well-typed programs in Agda can also be understood as proofs of inhabitance of
 their correspoinding types; types being understood as propositions.
 
-In what follows we will take a look at some concepts in Agda, which will be used
-in the formalization in chapter ?. A reader familiar with Agda may feel free to
-skip the rest of this chapter.
-\section{Basics}
-In this section, we present a few simple types in order to get accustomed to the
-syntax of Agda by way of example.
+This section is meant as a crash-course in Agda syntax, not semantics. In other
+words, those not familiar with dependently typed programming languages and/or
+proof assistants would do better to follow one of the books published on this
+topic. See \parencite{friedman2018little} for an introduction to dependent types
+as a whole, or \parencite{stump2016verified} for an in-depth introduction to
+dependendly typed programming and theorem proving in Agda.
+\section{Overview}
+Due to the presence of dependent types, all functions defined must be provably
+terminating. Failure to do so would result in type-checking becoming
+undecidable. However, this does not mean the loss of Turing-completeness; indeed
+we will see in section \ref{coinduction} how possibly non-terminating
+computations can still be expressed, with some help from the type system.
 
 Agda has strong support for mixfix operators\footnote{Operators which can have
-  multiple name parts and be infix, prefix, postfix, or
+  multiple name parts and are infix, prefix, postfix, or
   closed\parencite{mixfix}.} and Unicode identifiers. This often allows for
 developing a notation close to what one has come to expect in mathematics.
 However, with great power comes great responsibility and one should be careful
@@ -132,7 +138,6 @@ tool is limited to simple cases. In contrast with tools such as
 Coq\parencite{barras1997coq}, Agda suffers from lower degree of automation: there are no
 built-in tactics, though their implementation is possible through
 reflection\parencite{agda-manual}.
-
 \subsection{Trivial Types}
 A type which is trivially inhabited by a single value, This
 type is often refered to as \textit{Top} or \textit{Unit}. In Agda,
@@ -142,9 +147,10 @@ data ⊤ : Set where
 \end{code}
 declares the new data type \AgdaDatatype{⊤} which is itself of type
 \AgdaPrimitiveType{Set}\footnote{For the reader familiar with the Haskell type
-  system, the Agda type Set is akin to the Haskell kind \textit{Star}.}. The
-second line declared a constructor for this type, here called simply
-\AgdaInductiveConstructor{⋅}, which constructs a value of type
+  system, the Agda type $Set$ is akin to the Haskell kind \textit{Star}. Agda has
+  a stratified hierarchy of universes, where $Set$ itself is of the type $Set_1$, and
+  so on.}. The second line declared a constructor for this type, here called
+simply \AgdaInductiveConstructor{⋅}, which constructs a value of type
 \AgdaDatatype{⊤}\footnote{Again for the Haskell-able, note how the syntax here
   resembles that of Haskell with the extension \texttt{GADTs}.}.
 
@@ -489,6 +495,7 @@ Since this thesis can only be rendered if all the Agda code has successfully
 type-checked, the fact that the reader is currently reading this paragraph means
 the semantics function as expected!
 \section{Coinduction}
+\label{coinduction}
 \parencite{coinduction}
 \begin{code}
 \end{code}
