@@ -565,11 +565,32 @@ the semantics function as expected!
 \subsection{The Delay Monad}
 
 \begin{code}
-open import Data.Maybe using (Maybe; just)
-open import Codata.Thunk using (force)
-open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
+open import Size
+open import Data.Maybe
 
+mutual
+  data Delay (A : Set) (i : Size) : Set where
+    now   : A → Delay A i
+    later : ∞Delay A i → Delay A i
 
+  record ∞Delay (A : Set) (i : Size) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → Delay A j
+open ∞Delay public
+
+never : ∀ {A i} → Delay A i
+never = later λ where .force → never
+
+runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
+runFor zero (now x)      = just x
+runFor zero (later x)    = nothing
+runFor (suc n) (now x)   = just x
+runFor (suc n) (later x) = runFor n (force x)
+
+_>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
+now x >>= f   = f x
+later x >>= f = later λ where .force → (force x) >>= f
 \end{code}
 
 \chapter{SECD Machine}
@@ -1182,7 +1203,7 @@ foldTest =
 _ : runℕ foldTest 29 ≡ just (+ 10)
 _ = refl
 \end{code}
-\section{Compilation from a higher-level language}      
+\section{Compilation from a higher-level language}
 \begin{code}
 Ctx = List Type
 
