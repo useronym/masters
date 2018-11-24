@@ -161,6 +161,12 @@ data ⊥ : Set where
 \end{code}
 Note how there are no constructors declared for this type, therefore it is
 clearly uninhabited.
+
+The empty type also allows us to define the negation of a proposition,
+\begin{code}
+¬_ : Set → Set
+¬ P = P → ⊥
+\end{code}
 \subsection{Booleans}
 A step-up from the trivially inhabited type \AgdaDatatype{⊤}, the type of
 booleans is made up of two distinct values.
@@ -175,9 +181,9 @@ together with the shared type.
 We can also declare our first function now, one that will perform negation of
 Boolean values.
 \begin{code}
-¬_ : Bool → Bool
-¬ tt = ff
-¬ ff = tt
+not : Bool → Bool
+not tt = ff
+not ff = tt
 \end{code}
 Here we utilized pattern matching to split on the argument and
 flipped one into the other. Note the underscore \texttt{\_} in the name declaration of this
@@ -250,13 +256,15 @@ We can define propositional equality in Agda as follows.
 \end{code}
 \begin{code}[hide]
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
-open import Data.Nat using (ℕ; zero; suc) renaming (_≟_ to _≟ℕ_)
 \end{code}
-The equality type is polymorphic in some other underlying type, \AgdaArgument{A}.
-The only way we have to construct values of this type is by the constructor
-\AgdaInductiveConstructor{refl}, which says that each value is propositionaly
-equal to itself. Symmetry and transitivity of \AgdaDatatype{\_≡\_} are theorems
-in Agda.
+The curly braces denote an implicit argument, i.e. an argument that is to be
+inferred by the type-checker. The equality type is polymorphic in this
+underlying type, \AgdaArgument{A}.
+
+The only way we have to construct values of
+this type is by the constructor \AgdaInductiveConstructor{refl}, which says that
+each value is propositionaly equal to itself. Symmetry and transitivity of
+\AgdaDatatype{\_≡\_} are theorems in Agda.
 \begin{code}
 sym : {A : Set} {a b : A} → a ≡ b → b ≡ a
 sym refl = refl
@@ -271,7 +279,7 @@ By case splitting on the arguments we force Agda to unify the variables \A{a},
 Finally, let us see the promised proof of $1+1=2$,
 \begin{code}[hide]
 module Hidden2 where
-  open import Data.Nat using (_+_)
+  open import Data.Nat using (zero; suc; _+_)
 \end{code}
 \begin{code}
   1+1≡2 : 1 + 1 ≡ 2
@@ -287,20 +295,75 @@ would be that of associativity of addition,
     where ≡-cong : {A B : Set} {a b : A} → (f : A → B) → a ≡ b → f a ≡ f b
           ≡-cong f refl = refl
 \end{code}
+TODO: If this is to be kept here, explain.
 \section{Decidable Equality}
+A different concept of equality is that of \textit{Decidable equality}. This is
+a form of equality that, unlike Propositional equality, can be decided
+programatically. We define this equality as a restriction of propositional
+equality to those comparisons which are decidable. Firstly, we will need the
+definition of a decidable relation.
 \begin{code}
-open import Relation.Binary.Core using (Decidable)
-open import Relation.Nullary using (Dec; yes; no)
+data Dec (R : Set) : Set where
+  yes : R → Dec R
+  no  : ¬ R → Dec R
+\end{code}
+This data type allows us to embed either a \I{yes} or a \I{no} answer as to
+whether \A{R} is inhabited. Now we can define what it means for a type to
+possess Decidable equality,
+\begin{code}
+Decidable : (A : Set) → Set
+Decidable A = ∀ (a b : A) → Dec (a ≡ b)
+\end{code}
+Here we specify that for any two values of that type we must be able to produce
+an answer whether they are equal or not.
 
-_≟B_ : Decidable {A = Bool} _≡_
+As an example, let us define decidable equality for the type of Naturals,
+\begin{code}[hide]
+open import Data.Nat using (ℕ; zero; suc)
+\end{code}
+\begin{code}
+_≟ℕ_ : Decidable ℕ
+zero ≟ℕ zero    = yes refl
+(suc _) ≟ℕ zero = no λ()
+zero ≟ℕ (suc _) = no λ()
+(suc m) ≟ℕ (suc n) with m ≟ℕ n
+… | yes refl  = yes refl
+… | no ¬m≡n = no λ m≡n → ¬m≡n (suc-injective m≡n)
+  where suc-injective : ∀ {m n} → suc m ≡ suc n → m ≡ n
+        suc-injective refl = refl
+\end{code}
+Given a proof of equality of two values of a decidable type, we can forget all
+about the proof and simply ask whether the two values are equal or not,
+\begin{code}
+⌊_⌋ : {A : Set} {a b : A} → Dec (a ≡ b) → Bool
+⌊ yes p ⌋ = tt
+⌊ no ¬p ⌋ = ff
+\end{code}
+\begin{code}[hide]
+open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
+open import Data.Integer.Properties renaming (_≟_ to _≟ℤ'_)
+import Relation.Nullary as N
+import Data.Empty as E
+
+_≟B_ : Decidable Bool
 tt  ≟B tt = yes refl
 ff ≟B ff  = yes refl
 tt  ≟B ff = no λ()
 ff ≟B tt  = no λ()
 
-⌊_⌋ : {A : Set} {a b : A} → Dec (a ≡ b) → Bool
-⌊ yes p ⌋ = tt
-⌊ no ¬p ⌋ = ff
+_≟ℤ_ : Decidable ℤ
+a ≟ℤ b with a ≟ℤ' b
+… | N.yes refl = yes refl
+… | N.no ¬p = no λ x → ⊥⊥ (¬p x)
+  where ⊥⊥ : E.⊥ → ⊥
+        ⊥⊥ ()
+
+--_≟ℕ_ : Decidable ℕ
+--a ≟ℕ b with a ≟ℕ' b
+--… | N.yes refl = yes refl
+--… | N.no ¬p = no λ x → ⊥⊥ (¬p x)
+--  where ⊥⊥ : E.⊥ → ⊥
+--        ⊥⊥ ()
 \end{code}
 \section{Formalizing Type Systems}
 In what follows, we will take a look at how we can use Agda to formalize
@@ -502,9 +565,7 @@ the semantics function as expected!
 \subsection{The Delay Monad}
 
 \begin{code}
-open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
 open import Data.Maybe using (Maybe; just)
-open import Data.Integer.Properties renaming (_≟_ to _≟ℤ_)
 open import Codata.Thunk using (force)
 open import Codata.Delay using (Delay; now; later; never; runFor) renaming (bind to _>>=_)
 
@@ -773,7 +834,7 @@ with the simpler ones.
 \end{code}
 Instruction \I{ldc} loads a constant which is embedded in it. It poses no
 restrictions on the state of the machine and mutates the state by pushing the
-constant on the stack.       
+constant on the stack.
 \begin{code}
     ld   : ∀ {s e f a}
          → (a ∈ e)
@@ -869,7 +930,7 @@ stack. Maybe we will show you only a few of them and hide the rest later.
          → ⊢ (intT ∷ intT ∷ s) # e # f ⊳ (intT ∷ s) # e # f
     eq?  : ∀ {s e f a}
          → ⊢ (a ∷ a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
-    not  : ∀ {s e f}
+    nt   : ∀ {s e f}
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
 \end{code}
 \subsubsection{Derived instructions}
@@ -1086,7 +1147,7 @@ run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
         compare {pairT _ _} {pairT _ _} (a₁ , a₂) (b₁ , b₂) = (compare a₁ b₁) ∧ (compare a₂ b₂)
         compare {listT xs} {listT ys} a b = ⌊ length a ≟ℕ length b ⌋ -- BDO
         compare {_} {_} _ _ = ff
-run (x , s) e d (not >> r)       = run (¬ x , s) e d r
+run (x , s) e d (nt >> r)       = run (not x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (c₁ >+> r)
 … | ff = later λ where .force → run s e d (c₂ >+> r)
