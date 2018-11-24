@@ -558,33 +558,78 @@ modifying the state of the machine as necessary. The basic instructions are
 \begin{itemize}
   \item \texttt{ld x} –- load the value bound to the identifier \texttt{x} from
     the environment and put it on the stack;
-  \item \texttt{ldf f} –- load the sequence of instructions \texttt{f} in the
-    current environment, constructing a closure, and put it on the stack;
+  \item \texttt{ldf f} –- load the function -- i.e. a sequence of instructions --
+    \texttt{f} in the current environment, constructing a closure, and put it on the
+    stack;
   \item \texttt{ap} –- given that a closure and a value are present on the top
     of the stack, perform function application and put the return value on the
     stack;
   \item \texttt{rtn} –- return from a function, restoring control to the caller.
 \end{itemize}
-To see how the above instructions transform the machine state, please refer to
-Figure \ref{secd}.
+In addition, there are instructions for primitive operations, such as integer
+addition, list operations such as the head and tail operations, etc. All these
+only transform the stack, e.g. integer addition would consume two integers from
+the top of the stack and put back the result.
+
+We use the notation $f[e]$ to mean the closure of function $f$ in the
+environment $e$ and $∅$ to mean an empty stack, environment, control, or dump.
+The notation $e(x)$ refers to the value in environment $e$ bound under the
+identifier $x$.
+
+To see how the basic instructions and the addition instruction transform the
+machine state, please refer to Figure \ref{secd}.
+
+To see an example of execution of the machine, please refer to Figure
+\ref{secdexample}.
+
+It is usual to use De Bruijn indices when referring to identifiers in the
+\texttt{ld} instruction. E.g. \texttt{ld 0} loads the topmost value in the
+environment and puts it on the stack. Hence, De Bruijn indices are used in the
+example in this chapter. They will also be used in the following chapter in the
+Agda formalization.
 
 \newcolumntype{L}{>{$}l<{$}}
 \begin{figure}[h]
   \centering
   \begin{tabular}{L | L | L | L || L | L | L | L}
-    \multicolumn{4}{c||}{Before} & \multicolumn{4}{c}{After} \\
+    \toprule
+    \multicolumn{4}{c||}{Before} & \multicolumn{4}{c}{After} \\[2mm]
+    \multicolumn{1}{c|}{S} & \multicolumn{1}{c|}{E} & \multicolumn{1}{c|}{C} & \multicolumn{1}{c||}{D} & \multicolumn{1}{c|}{S'} & \multicolumn{1}{c|}{E'} & \multicolumn{1}{c|}{C'} & \multicolumn{1}{c}{D'} \\
     \midrule
-    s & e & ld\ x , c & d & e(x) , s & e & c & d \\
-    s & e & ldf\ f , c & d & f[e] , s & e & c & d \\
-    x , f[e'] , s & e & ap\ x , c & d & ∅ & e' & f & (s , e , c) , d \\
-    y , s & e & rtn\ x , c & (s' , e' , c') , d & y , s' & e' & c' & d \\
+    s             & e & \texttt{ld x }, c  & d                  & e(x) , s & e    & c  & d               \\
+    s             & e & \texttt{ldf f }, c & d                  & f[e] , s & e    & c  & d               \\
+    x , f[e'] , s & e & \texttt{ap }, c    & d                  & ∅        & x,e' & f  & (s , e , c) , d \\
+    y , s         & e & \texttt{rtn }, c   & (s' , e' , c') , d & y , s'   & e'   & c' & d               \\
+    a,b,s         & e & \texttt{add }, c   & d                  & a+b , s  & e    & c  & d               \\
+    \bottomrule
   \end{tabular}
   \caption{The above table presents the transition relation of the SECD Machine.
   On the left is the state of the machine before the execution of a single
-  instruction. On the right is the newly mutated state. \textbf{$e(x)$} is the
-  value in $e$ stored under the identifier $x$. \textbf{$f[e]$} is the closure
-  of $f$ in the environment $e$. \textbf{$∅$} is the empty stack.}
+  instruction. On the right is the newly mutated state.}
   \label{secd}
+\end{figure}
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{L | L | L | L}
+    \toprule
+    \multicolumn{1}{c|}{S} & \multicolumn{1}{c|}{E} & \multicolumn{1}{c|}{C} & \multicolumn{1}{c}{D} \\
+    \midrule
+    ∅       & ∅ & \texttt{ldf f, ldc 1, ap, ldc 3, add} & ∅                         \\
+    f[∅]    & ∅ & \texttt{ldc 1, ap, ldc 3, add}        & ∅                         \\
+    1, f[∅] & ∅ & \texttt{ap, ldc 3, add}               & ∅                         \\
+    ∅       & 1 & \texttt{ldc 1, ld 0, add, rtn}        & (∅,∅,\texttt{ldc 3, add}) \\
+    1       & 1 & \texttt{ld 0, add, rtn}               & (∅,∅,\texttt{ldc 3, add}) \\
+    1,1     & 1 & \texttt{add, rtn}                     & (∅,∅,\texttt{ldc 3, add}) \\
+    2       & 1 & \texttt{rtn}                          & (∅,∅,\texttt{ldc 3, add}) \\
+    2       & ∅ & \texttt{ldc 3, add}                   & ∅                         \\
+    3,2     & ∅ & \texttt{add}                          & ∅                         \\
+    5       & ∅ & ∅                                     & ∅                         \\
+    \bottomrule
+  \end{tabular}
+  \caption{Example execution from an empty initial state of the code \texttt{ldf
+      f, ldc 1, ap, ldc 3, add} where $\texttt{f} = \texttt{ldc 1, ld 0, add,
+      rtn}$.}
+  \label{secdexample}
 \end{figure}
 
 \chapter{Formalization}
