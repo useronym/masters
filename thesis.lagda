@@ -966,7 +966,7 @@ nil? = nil >| eq?
 
 loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
 loadList [] = nil >> ∅
-loadList (x ∷ xs) = (loadList xs) >+> (ldc (int (+ x)) >| cons)
+loadList (x ∷ xs) = loadList xs >+> ldc (int (+ x)) >| cons
 \end{code}
 The first one is simply the check for an empty list. The second one is more
 interesting, it constructs a sequence of instructions which will load a list of
@@ -1034,7 +1034,7 @@ example we also construct a function, however this time we embed the instruction
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
 \end{code}
-The only consideration is that when we wish to load this function in another
+The only consideration is that when we wish to use this function in another
 program, rather than writing \I{ldf} \F{plus} we must only write \F{plus}.
 
 Lastly, a more involved example: that of a folding function. Here we test all
@@ -1057,11 +1057,11 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
 \end{code}
 Here is what's going on: to start, we load the list we are folding. We check
 whether it is empty: if so, the accumulator \F{𝟏} is loaded and returned. On the other
-hand, if it list is not empty, we start with loading the folding function \F{𝟐}.
+hand, if the list is not empty, we start with loading the folding function \F{𝟐}.
 Next, we load the accumulator \F{𝟏}. We perform partial application. Next, we
 load the list \F{𝟎} and obtain it's first element with \I{head}. We apply to the
-already partially-applied folding function, yielding a new accumulator on the
-stack.
+already partially-applied folding function, yielding the new accumulator on the
+top of the stack.
 
 Now we need to make the recursive call: we load ourselves with \I{ldr} \F{𝟐}.
 Next we need to apply all three arguments: we start with loading the folding
@@ -1070,9 +1070,9 @@ applied foldl is on the top of the stack and the new accumulator is right below
 it; we flip\footnote{Note we could have reorganized the instructions in a manner
   so that this flip would not be necessary, indeed we will see that there is no
   need for this instruction in section ?} the two and apply. Lastly, we load
-the list, drop the first element with \I{tail} and perform recursive application
+the list \F{𝟎}, drop the first element with \I{tail} and perform recursive application
 with tail-call elimination.
-\section{Semantics}      
+\section{Semantics}
 \begin{code}
 mutual
   ⟦_⟧ᵉ : Env → Set
@@ -1080,12 +1080,12 @@ mutual
   ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 
   ⟦_⟧ᵈ : FunDump → Set
-  ⟦ [] ⟧ᵈ                    = ⊤
-  ⟦ intT ∷ xs ⟧ᵈ = ⊥
-  ⟦ boolT ∷ xs ⟧ᵈ = ⊥
+  ⟦ [] ⟧ᵈ              = ⊤
+  ⟦ intT ∷ xs ⟧ᵈ       = ⊥
+  ⟦ boolT ∷ xs ⟧ᵈ      = ⊥
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
-  ⟦ a ⇒ b ∷ xs ⟧ᵈ = Closure a b × ⟦ xs ⟧ᵈ
-  ⟦ listT x ∷ xs ⟧ᵈ = ⊥
+  ⟦ a ⇒ b ∷ xs ⟧ᵈ      = Closure a b × ⟦ xs ⟧ᵈ
+  ⟦ listT x ∷ xs ⟧ᵈ    = ⊥
 
   record Closure (a b : Type) : Set where
     inductive
@@ -1098,11 +1098,11 @@ mutual
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
   ⟦_⟧ᵗ : Type → Set
-  ⟦ intT ⟧ᵗ           = ℤ
-  ⟦ boolT ⟧ᵗ          = Bool
-  ⟦ pairT t₁ t₂ ⟧ᵗ    = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
+  ⟦ intT ⟧ᵗ        = ℤ
+  ⟦ boolT ⟧ᵗ       = Bool
+  ⟦ pairT t₁ t₂ ⟧ᵗ = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
   ⟦ a ⇒ b ⟧ᵗ       = Closure a b
-  ⟦ listT t ⟧ᵗ        = List ⟦ t ⟧ᵗ
+  ⟦ listT t ⟧ᵗ     = List ⟦ t ⟧ᵗ
 
 ⟦_⟧ˢ : Stack → Set
 ⟦ [] ⟧ˢ     = ⊤
@@ -1119,13 +1119,9 @@ tailᵈ {pairT x x₁} ()
 tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
 
---lookupᵈ : ∀ {x xs} → ⟦ xs ⟧ᵈ → x ∈ xs → ⟦ x ⟧ᶜˡ
---lookupᵈ {mkClosureT _ _ _} (x , _) 𝟎 = x
---lookupᵈ {mkClosureT _ _ _} list (t𝟎 at) = lookupᵈ (tailᵈ list) at
-
 lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
-lookupᵈ f (there w) = lookupᵈ (tailᵈ f) w
+lookupᵈ f (there w)  = lookupᵈ (tailᵈ f) w
 
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
@@ -1231,22 +1227,24 @@ fac = ƛ if (var 𝟎 == #⁺ 1)
                     $ var 𝟎)
 
 mutual
-  compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ) ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
-  compileT (f $ x) = compile f >+> compile x >+> rap >> ∅
+  compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
+                         → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
+                           ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
+  compileT (f $ x)              = compile f >+> compile x >+> rap >> ∅
   compileT (if t then a else b) = compile t >+> if (compileT a) (compileT b) >> ∅
-  compileT t = compile t >+> rtn >> ∅
+  compileT t                    = compile t >+> rtn >> ∅
 
   compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
-  compile (var x) = ld x >> ∅
-  compile (ƛ t) = ldf (compileT t) >> ∅
-  compile (f $ x) = compile f >+> compile x >+> ap >> ∅
-  compile (rec x) = ldr x >> ∅
+  compile (var x)              = ld x >> ∅
+  compile (ƛ t)                = ldf (compileT t) >> ∅
+  compile (f $ x)              = compile f >+> compile x >+> ap >> ∅
+  compile (rec x)              = ldr x >> ∅
   compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
-  compile (a == b) = compile b >+> compile a >+> eq? >> ∅
-  compile (# x) = ldc (int x) >> ∅
-  compile (#⁺ x) = ldc (int (+ x)) >> ∅
-  compile mul = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
-  compile sub = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
+  compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
+  compile (# x)                = ldc (int x) >> ∅
+  compile (#⁺ x)               = ldc (int (+ x)) >> ∅
+  compile mul                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
+  compile sub                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
 
 _ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
 _ = refl

@@ -1,6 +1,9 @@
 latex/
+auto/
 *.aux
 *.bcf
+*.bbl
+*.blg
 *.dvi
 *.idx
 *.lof
