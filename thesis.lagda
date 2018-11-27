@@ -340,7 +340,7 @@ about the proof and simply ask whether the two values are equal or not,
 ⌊ no ¬p ⌋ = ff
 \end{code}
 \begin{code}[hide]
-open import Data.Integer using (ℤ; +_; _+_; _-_; _*_)
+open import Data.Integer using (ℤ)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ'_)
 import Relation.Nullary as N
 import Data.Empty as E
@@ -357,18 +357,16 @@ a ≟ℤ b with a ≟ℤ' b
 … | N.no ¬p = no λ x → ⊥⊥ (¬p x)
   where ⊥⊥ : E.⊥ → ⊥
         ⊥⊥ ()
-
---_≟ℕ_ : Decidable ℕ
---a ≟ℕ b with a ≟ℕ' b
---… | N.yes refl = yes refl
---… | N.no ¬p = no λ x → ⊥⊥ (¬p x)
---  where ⊥⊥ : E.⊥ → ⊥
---        ⊥⊥ ()
 \end{code}
 \section{Formalizing Type Systems}
 In what follows, we will take a look at how we can use Agda to formalize
 deductive systems. We will take the simplest example there is, the Simply Typed
 λ Calculus. Some surface-level knowledge of this calculus is assumed.
+
+For a more in-depth treatment of the topic of formalizing programming languages
+and programming language theory in Agda, please refer to
+\parencite{wadler2018programming}.
+
 \subsection{De Bruijn Indices}
 Firstly, we shall need some machinery to make our lives easier. We could use
 string literals as variable names in our system, however this would lead to
@@ -558,16 +556,52 @@ Since this thesis can only be rendered if all the Agda code has successfully
 type-checked, the fact that the reader is currently reading this paragraph means
 the semantics function as expected!
 \section{Coinduction}
+
 \label{coinduction}
 \parencite{coinduction}
+
+\begin{code}[hide]
+open import Size
+open import Data.Maybe using (Maybe; just; nothing)
+\end{code}
 \begin{code}
+mutual
+  data Stream (A : Set) (i : Size) : Set where
+    []ˢ : Stream A i
+    _∷ˢ_ : A → ∞Stream A i → Stream A i
+
+  record ∞Stream (A : Set) (i : Size) : Set where
+    coinductive
+    field
+      force : {j : Size< i} → Stream A j
+open ∞Stream public
+\end{code}
+\begin{code}[hide]
+module HiddenX where
+  open import Data.Nat using (⌊_/2⌋; _+_; _*_)
+
+  takeˢ : ∀ {A} → ℕ → Stream A ∞ → List A
+  takeˢ zero xs           = []
+  takeˢ (suc n) []ˢ       = []
+  takeˢ (suc n) (x ∷ˢ xs) = x ∷ takeˢ n (force xs)
+
+  even? : ℕ → Bool
+  even? zero          = tt
+  even? (suc zero)    = ff
+  even? (suc (suc n)) = even? n
+\end{code}
+\begin{code}
+  step : ℕ → ℕ
+  step n with even? n
+  … | tt = ⌊ n /2⌋
+  … | ff = 3 * n + 1
+
+  collatz : ℕ → Stream ℕ ∞
+  collatz 1 = 1 ∷ˢ λ where .force → []ˢ
+  collatz n = n ∷ˢ λ where .force → collatz (step n)
 \end{code}
 \subsection{The Delay Monad}
-
 \begin{code}
-open import Size
-open import Data.Maybe
-
 mutual
   data Delay (A : Set) (i : Size) : Set where
     now   : A → Delay A i
@@ -578,19 +612,25 @@ mutual
     field
       force : {j : Size< i} → Delay A j
 open ∞Delay public
-
+\end{code}
+\begin{code}
 never : ∀ {A i} → Delay A i
 never = later λ where .force → never
-
+\end{code}
+\begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
 runFor zero (now x)      = just x
-runFor zero (later x)    = nothing
-runFor (suc n) (now x)   = just x
-runFor (suc n) (later x) = runFor n (force x)
-
+runFor zero (later _)    = nothing
+runFor (suc _) (now x)   = just x
+runFor (suc n) (later x) = runFor n (x .force)
+\end{code}
+\begin{code}
 _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
 now x >>= f   = f x
-later x >>= f = later λ where .force → (force x) >>= f
+later x >>= f = later λ where .force → (x .force) >>= f
+\end{code}
+\begin{code}[hide]
+open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}
 
 \chapter{SECD Machine}
@@ -759,10 +799,10 @@ _>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
 a >| b = a >> b >> ∅
 \end{code}
 Furthermore, we can also concatenate two paths, given that the end of the first
-path matches the start of the second one.
+path connects to the start of the second one.
 \begin{code}
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
-∅ >+> r = r
+∅        >+> r = r
 (x >> l) >+> r = x >> (l >+> r)
 infixr 4 _>+>_
 \end{code}
