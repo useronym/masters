@@ -601,7 +601,8 @@ module HiddenX where
   collatz n = n ∷ˢ λ where .force → collatz (step n)
   \end{code}
   \begin{code}
-  _ : takeˢ 11 (collatz 12) ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ []
+  _ : takeˢ 10 (collatz 12)
+      ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ []
   _ = refl
 \end{code}
 \subsection{The Delay Monad}
@@ -727,13 +728,13 @@ Agda formalization.
   \begin{tabular}{L | L | L | L || L | L | L | L}
     \toprule
     \multicolumn{4}{c||}{Before} & \multicolumn{4}{c}{After} \\[2mm]
-    \multicolumn{1}{c|}{S} & \multicolumn{1}{c|}{E} & \multicolumn{1}{c|}{C} & \multicolumn{1}{c||}{D} & \multicolumn{1}{c|}{S'} & \multicolumn{1}{c|}{E'} & \multicolumn{1}{c|}{C'} & \multicolumn{1}{c}{D'} \\
+    \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c||}{D} & \multicolumn{1}{c}{S'} & \multicolumn{1}{c}{E'} & \multicolumn{1}{c}{C'} & \multicolumn{1}{c}{D'} \\
     \midrule
-    s             & e & \texttt{ld x }, c  & d                  & e(x) , s & e    & c  & d               \\
-    s             & e & \texttt{ldf f }, c & d                  & f[e] , s & e    & c  & d               \\
-    x , f[e'] , s & e & \texttt{ap }, c    & d                  & ∅        & x,e' & f  & (s , e , c) , d \\
-    y , s         & e & \texttt{rtn }, c   & (s' , e' , c') , d & y , s'   & e'   & c' & d               \\
-    a,b,s         & e & \texttt{add }, c   & d                  & a+b , s  & e    & c  & d               \\
+    s             & e & \texttt{ld x}\ , c  & d                  & e(x) , s & e    & c  & d               \\
+    s             & e & \texttt{ldf f}\ , c & d                  & f[e] , s & e    & c  & d               \\
+    x , f[e'] , s & e & \texttt{ap}\ , c    & d                  & ∅        & x,e' & f  & (s , e , c) , d \\
+    y , s         & e & \texttt{rtn}\ , c   & (s' , e' , c') , d & y , s'   & e'   & c' & d               \\
+    a,b,s         & e & \texttt{add}\ , c   & d                  & a+b , s  & e    & c  & d               \\
     \bottomrule
   \end{tabular}
   \caption{The above table presents the transition relation of the SECD Machine.
@@ -745,7 +746,7 @@ Agda formalization.
   \centering
   \begin{tabular}{L | L | L | L}
     \toprule
-    \multicolumn{1}{c|}{S} & \multicolumn{1}{c|}{E} & \multicolumn{1}{c|}{C} & \multicolumn{1}{c}{D} \\
+    \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c}{D} \\
     \midrule
     ∅       & ∅ & \texttt{ldf f, ldc 1, ap, ldc 3, add} & ∅                         \\
     f[∅]    & ∅ & \texttt{ldc 1, ap, ldc 3, add}        & ∅                         \\
@@ -974,19 +975,19 @@ stack. Their types are outlined in Figure \ref{instypes}.
     \toprule
     \multicolumn{1}{c}{Instruction} & \multicolumn{1}{c}{Stack before} & \multicolumn{1}{c}{Stack after} \\
     \midrule
-    \I{nil}  & \A{s}                              & \A{}\I{listT}\A{\ a ∷ s}     \\
-    \I{flp}  & \A{a ∷ b ∷ s}                      & \A{b ∷ a ∷ s}                \\
-    \I{cons} & \A{a ∷\ }\I{listT}\A{\ a ∷ s}      & \A{}\I{listT}\A{\ a ∷ s}     \\
-    \I{head} & \I{listT}\A{\ a ∷ s}               & \A{a ∷ s}                    \\
-    \I{tail} & \I{listT}\A{\ a ∷ s}               & \A{}\I{listT}\A{\ a ∷ s}     \\
-    \I{pair} & \A{a ∷ b ∷ s}                      & \A{}\I{pairT}\A{\ a \ b ∷ s} \\
-    \I{fst}  & \I{pairT}\A{\ a \ b ∷ s}           & \A{a ∷ s}                    \\
-    \I{snd}  & \I{pairT}\A{\ a \ b ∷ s}           & \A{b ∷ s}                    \\
+    \I{nil}  & \A{s}                               & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{flp}  & \A{a ∷ b ∷ s}                       & \A{b ∷ a ∷ s}                \\
+    \I{cons} & \A{a ∷\ }\I{listT}\A{\ a ∷ s}       & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{head} & \I{listT}\A{\ a ∷ s}                & \A{a ∷ s}                    \\
+    \I{tail} & \I{listT}\A{\ a ∷ s}                & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{pair} & \A{a ∷ b ∷ s}                       & \A{}\I{pairT}\A{\ a \ b ∷ s} \\
+    \I{fst}  & \I{pairT}\A{\ a \ b ∷ s}            & \A{a ∷ s}                    \\
+    \I{snd}  & \I{pairT}\A{\ a \ b ∷ s}            & \A{b ∷ s}                    \\
     \I{add}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
     \I{sub}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
     \I{mul}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
-    \I{eq?}  & \A{a ∷ a ∷ s}                      & \I{boolT}\A{\ ∷ s}       \\
-    \I{not}  & \I{boolT}\A{\ ∷ s}                 & \I{boolT}\A{\ ∷ s}           \\
+    \I{eq?}  & \A{a ∷ a ∷ s}                       & \I{boolT}\A{\ ∷ s}           \\
+    \I{not}  & \I{boolT}\A{\ ∷ s}                  & \I{boolT}\A{\ ∷ s}           \\
     \bottomrule
   \end{tabular}
   \caption{Instructions implementing primitive operations and their associated
@@ -1162,7 +1163,8 @@ mutual
     field
       {e} : Env
       {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
+      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (a ⇒ b ∷ f)
+             ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
 
@@ -1192,19 +1194,34 @@ lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
 lookupᵈ f (there w)  = lookupᵈ (tailᵈ f) w
 
-run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ → ⊢ s # e # f ↝ s' # e' # f'
+run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ
+                           → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
 run s e d ∅ = now s
-run s e d (ldf code >> r) = run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
-run s e d (ldr at >> r) = run (lookupᵈ d at , s) e d r
+run s e d (ldf code >> r) =
+  run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
+run s e d (ldr at >> r) =
+  run (lookupᵈ d at , s) e d r
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
-  later λ where .force → do
-                           (b , _) ← run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-                           run (b , s) e d r
+  later
+    λ where
+      .force →
+        do
+          (b , _) ← run ⋅
+                        (a , fE)
+                        (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump)
+                        code
+          run (b , s) e d r
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
-  later λ where .force → run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
+  later
+    λ where
+      .force →
+        run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
-  later λ where .force → run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
+  later
+    λ where
+      .force →
+        run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
 run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
 run (x , s) e d (lett >> r)      = run s (x , e) d r
 run s e d (nil >> r)             = run ([] , s) e d r
@@ -1227,18 +1244,21 @@ run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
 run (x , y , s) e d (sub >> r)   = run (x - y , s) e d r
 run (x , y , s) e d (mul >> r)   = run (x * y , s) e d r
 run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
-  where compare : {t₁ t₂ : Type} → ⟦ t₁ ⟧ᵗ → ⟦ t₂ ⟧ᵗ → ⟦ boolT ⟧ᵗ
-        compare {intT} {intT} a b   = ⌊ a ≟ℤ b ⌋
-        compare {boolT} {boolT} a b = ⌊ a ≟B b ⌋
-        compare {pairT _ _} {pairT _ _} (a₁ , a₂) (b₁ , b₂) = (compare a₁ b₁) ∧ (compare a₂ b₂)
-        compare {listT xs} {listT ys} a b = ⌊ length a ≟ℕ length b ⌋ -- BDO
-        compare {_} {_} _ _ = ff
+  where compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → ⟦ boolT ⟧ᵗ
+        compare {intT} a b  = ⌊ a ≟ℤ b ⌋
+        compare {boolT} a b = ⌊ a ≟B b ⌋
+        compare {pairT _ _} (a₁ , a₂) (b₁ , b₂) =
+          (compare a₁ b₁) ∧ (compare a₂ b₂)
+        compare {listT xs}  a b = ⌊ length a ≟ℕ length b ⌋ -- TDO
+        compare {_ ⇒ _} _ _     = ff
 run (x , s) e d (nt >> r)       = run (not x , s) e d r
 run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (c₁ >+> r)
 … | ff = later λ where .force → run s e d (c₂ >+> r)
 
-runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # [] → ℕ → Maybe ⟦ x ⟧ᵗ
+runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
+               → ℕ
+               → Maybe ⟦ x ⟧ᵗ
 runℕ c n = runFor n
   do
     (x , _) ← run ⋅ ⋅ ⋅ c
@@ -1278,8 +1298,10 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
   ƛ_  : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_ : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
   rec : ∀ {Ψ Γ α β} → (α ⇒ β) ∈ Ψ → Ψ × Γ ⊢ α ⇒ β
-  if_then_else_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ boolT → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α
-  _==_ : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ boolT
+  if_then_else_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ boolT
+                            → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α
+                            → Ψ × Γ ⊢ α
+  _==_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α → Ψ × Γ ⊢ boolT
   #_ : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
   #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
   mul : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
@@ -1299,16 +1321,19 @@ mutual
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
                          → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
                            ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
-  compileT (f $ x)              = compile f >+> compile x >+> rap >> ∅
-  compileT (if t then a else b) = compile t >+> if (compileT a) (compileT b) >> ∅
-  compileT t                    = compile t >+> rtn >> ∅
+  compileT (f $ x) =
+    compile f >+> compile x >+> rap >> ∅
+  compileT (if t then a else b) =
+    compile t >+> if (compileT a) (compileT b) >> ∅
+  compileT t = compile t >+> rtn >> ∅
 
   compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
   compile (var x)              = ld x >> ∅
   compile (ƛ t)                = ldf (compileT t) >> ∅
   compile (f $ x)              = compile f >+> compile x >+> ap >> ∅
   compile (rec x)              = ldr x >> ∅
-  compile (if t then a else b) = compile t >+> if (compile a) (compile b) >> ∅
+  compile (if t then a else b) =
+    compile t >+> if (compile a) (compile b) >> ∅
   compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
   compile (# x)                = ldc (int x) >> ∅
   compile (#⁺ x)               = ldc (int (+ x)) >> ∅
