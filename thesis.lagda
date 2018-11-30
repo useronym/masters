@@ -599,6 +599,10 @@ module HiddenX where
   collatz : ℕ → Stream ℕ ∞
   collatz 1 = 1 ∷ˢ λ where .force → []ˢ
   collatz n = n ∷ˢ λ where .force → collatz (step n)
+  \end{code}
+  \begin{code}
+  _ : takeˢ 11 (collatz 12) ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ []
+  _ = refl
 \end{code}
 \subsection{The Delay Monad}
 \begin{code}
@@ -614,7 +618,7 @@ mutual
 open ∞Delay public
 \end{code}
 \begin{code}
-never : ∀ {A i} → Delay A i
+never : ∀ {A} → Delay A ∞
 never = later λ where .force → never
 \end{code}
 \begin{code}
@@ -963,8 +967,33 @@ shape, otherwise it would be unclear what the stack looks like after this
 instruction.
 
 The remaining instructions are fairly simple in that they only manipulate the
-stack. Maybe we will show you only a few of them and hide the rest later.
-\begin{code}
+stack. Their types are outlined in Figure \ref{instypes}.
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{L | L | L}
+    \toprule
+    \multicolumn{1}{c}{Instruction} & \multicolumn{1}{c}{Stack before} & \multicolumn{1}{c}{Stack after} \\
+    \midrule
+    \I{nil}  & \A{s}                              & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{flp}  & \A{a ∷ b ∷ s}                      & \A{b ∷ a ∷ s}                \\
+    \I{cons} & \A{a ∷\ }\I{listT}\A{\ a ∷ s}      & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{head} & \I{listT}\A{\ a ∷ s}               & \A{a ∷ s}                    \\
+    \I{tail} & \I{listT}\A{\ a ∷ s}               & \A{}\I{listT}\A{\ a ∷ s}     \\
+    \I{pair} & \A{a ∷ b ∷ s}                      & \A{}\I{pairT}\A{\ a \ b ∷ s} \\
+    \I{fst}  & \I{pairT}\A{\ a \ b ∷ s}           & \A{a ∷ s}                    \\
+    \I{snd}  & \I{pairT}\A{\ a \ b ∷ s}           & \A{b ∷ s}                    \\
+    \I{add}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
+    \I{sub}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
+    \I{mul}  & \I{intT}\A{\ ∷ \ }\I{intT}\A{\ ∷ s} & \I{intT}\A{\ ∷ s}            \\
+    \I{eq?}  & \A{a ∷ a ∷ s}                      & \I{boolT}\A{\ ∷ s}       \\
+    \I{not}  & \I{boolT}\A{\ ∷ s}                 & \I{boolT}\A{\ ∷ s}           \\
+    \bottomrule
+  \end{tabular}
+  \caption{Instructions implementing primitive operations and their associated
+    types, i.e. their manipulations of the stack.}
+  \label{instypes}
+\end{figure}
+\begin{code}[hide]
     lett : ∀ {s e f x}
          → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     nil  : ∀ {s e f a}
