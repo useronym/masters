@@ -1139,16 +1139,48 @@ function \F{𝟐} and applying it. We are now in a state where the partially
 applied foldl is on the top of the stack and the new accumulator is right below
 it; we flip\footnote{Note we could have reorganized the instructions in a manner
   so that this flip would not be necessary, indeed we will see that there is no
-  need for this instruction in section ?} the two and apply. Lastly, we load
-the list \F{𝟎}, drop the first element with \I{tail} and perform recursive application
-with tail-call elimination.
+  need for this instruction in section \ref{compilation}} the two and apply.
+Lastly, we load the list \F{𝟎}, drop the first element with \I{tail} and perform
+recursive application with tail-call elimination.
 \section{Semantics}
+Having defined the syntax, we can now turn to semantics. In this section, we
+will give operational semantics to the SECD machine syntax defined in the
+previous section.
+
+\subsection{Types}
+We begin, similarly to how we handled the semantics in \ref{lambda_semantics},
+by first giving semantics to the types. Here we have to proceed by mutual
+induction, as in certain places we will need to make references to the semantics
+of other types, and vice versa. The order of the following definitions is
+arbitrary from the point of view of correctness and was chosen purely for
+improving readability.
+
+We start by giving semantics to the types of our machine,
 \begin{code}
 mutual
+  ⟦_⟧ᵗ : Type → Set
+  ⟦ intT ⟧ᵗ        = ℤ
+  ⟦ boolT ⟧ᵗ       = Bool
+  ⟦ pairT t₁ t₂ ⟧ᵗ = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
+  ⟦ a ⇒ b ⟧ᵗ       = Closure a b
+  ⟦ listT t ⟧ᵗ     = List ⟦ t ⟧ᵗ
+\end{code}
+Here we realized the machine types as the corresponding types in Agda. The
+exception is the type of functions, which we realize as a closure. The meaning
+of \D{Closure} will be defined at a later moment.
+
+We proceed by giving semantics to the environment,
+\begin{code}
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ     = ⊤
   ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
+\end{code}
+The semantics of environment are fairly straightforward, we make a reference to
+the semantic function for types and inductively define the environment as a
+product of semantics of each type in it.
 
+Next, we define the semantics of the function dump,
+\begin{code}
   ⟦_⟧ᵈ : FunDump → Set
   ⟦ [] ⟧ᵈ              = ⊤
   ⟦ intT ∷ xs ⟧ᵈ       = ⊥
@@ -1156,7 +1188,17 @@ mutual
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
   ⟦ a ⇒ b ∷ xs ⟧ᵈ      = Closure a b × ⟦ xs ⟧ᵈ
   ⟦ listT x ∷ xs ⟧ᵈ    = ⊥
+\end{code}
+Since the type of the function dump technically permits also non-function types
+in it, we have to handle them here by simply saying that they may not be
+realized. There is, however, no instruction which would allow putting a
+non-function type in the dump.
 
+Now finally for the definition of \D{Closure}, we define it as a record
+containing the code of the function, a realization of the starting environment,
+and finally a realization of the function dump, containing closures which may be
+called recursively from this closure.
+\begin{code}
   record Closure (a b : Type) : Set where
     inductive
     constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
@@ -1167,36 +1209,72 @@ mutual
              ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
       ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
+\end{code}
+This concludes the mutual block of definitions.
 
-  ⟦_⟧ᵗ : Type → Set
-  ⟦ intT ⟧ᵗ        = ℤ
-  ⟦ boolT ⟧ᵗ       = Bool
-  ⟦ pairT t₁ t₂ ⟧ᵗ = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
-  ⟦ a ⇒ b ⟧ᵗ       = Closure a b
-  ⟦ listT t ⟧ᵗ     = List ⟦ t ⟧ᵗ
-
+There is one more type we have not handled yet, \D{Stack}, which is not required
+to be in the mutual block above,
+\begin{code}
 ⟦_⟧ˢ : Stack → Set
 ⟦ [] ⟧ˢ     = ⊤
 ⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
+\end{code}
+The stack is realized similarly to the environment, however the environment is
+referenced in the definition of \D{Closure}, making it necessary for it to be in
+the mutual definition block.
 
+\subsection{Auxiliary functions}
+In order to proceed with giving semantics to SECD execution, we will first need
+a few auxiliary functions to lookup values from the environment and from the
+function dump.
+
+As for the environment, the situation is fairly simple,
+\begin{code}
 lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
 lookupᵉ (x , _) here       = x
 lookupᵉ (_ , xs) (there w) = lookupᵉ xs w
-
+\end{code}
+Looking up values from the function dump is slightly more involved, because Agda
+doesn't let us pattern-match on the first argument as we did here. Instead, we
+must define an auxiliary function to drop the first element of the product,
+\begin{code}
 tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
 tailᵈ {intT} ()
 tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
 tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
+\end{code}
+We pattern-match on the type of the value in the environment in order to get
+Agda to realize that only a realization of a function may be in the function
+dump, at which point we can pattern-match on the product that is the function
+dump and drop the first element.
 
+Now we can define the lookup operation for the function dump,
+\begin{code}
 lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here = x
 lookupᵈ f (there w)  = lookupᵈ (tailᵈ f) w
+\end{code}
+dropping the elements as necessary with \F{tailᵈ} until we get to the desired
+closure.
 
+\subsection{Execution}
+Now we are finally ready to define the execution of instructions. Let us start
+with the type,
+\begin{code}
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ
                            → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
+\end{code}
+Here we say that in order to execute the code
+\[
+  \D {⊢}\ s\ \I{\#}\ e\ \I{\#}\ f\ \D{↝}\ s'\ \I{\#}\ e'\ \I{\#}\ f'
+\]
+we require realizations of the stack \A{s}, environment \A{e}, and function dump
+\A{f}. We will return the stack the code stops execution in, wrapped in the
+\D{Delay} monad in order to allow for a non-structurally inductive process.
+\begin{code}
 run s e d ∅ = now s
 run s e d (ldf code >> r) =
   run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
@@ -1256,6 +1334,8 @@ run (bool , s) e d (if c₁ c₂ >> r) with bool
 … | tt = later λ where .force → run s e d (c₁ >+> r)
 … | ff = later λ where .force → run s e d (c₂ >+> r)
 
+\end{code}
+\begin{code}
 runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
                → ℕ
                → Maybe ⟦ x ⟧ᵗ
@@ -1265,6 +1345,8 @@ runℕ c n = runFor n
     now x
 
 
+\end{code}
+\begin{code}
 _ : runℕ 2+3 1 ≡ just (+ 5)
 _ = refl
 
@@ -1273,6 +1355,8 @@ _ = refl
 
 _ : runℕ λTest 3 ≡ just (+ 3)
 _ = refl
+\end{code}
+\begin{code}
 
 foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 foldTest =
@@ -1288,10 +1372,14 @@ foldTest =
 _ : runℕ foldTest 29 ≡ just (+ 10)
 _ = refl
 \end{code}
+\begin{code}
+\end{code}
 \section{Compilation from a higher-level language}
+\label{compilation}
 \begin{code}
 Ctx = List Type
-
+\end{code}
+\begin{code}
 infix 2 _×_⊢_
 data _×_⊢_ : Ctx → Ctx → Type → Set where
   var : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
@@ -1309,14 +1397,15 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
-
-
+\end{code}
+\begin{code}
 fac : [] × [] ⊢ (intT ⇒ intT)
 fac = ƛ if (var 𝟎 == #⁺ 1)
           then #⁺ 1
           else (mul $ (rec 𝟎 $ (sub $ var 𝟎 $ #⁺ 1))
                     $ var 𝟎)
-
+\end{code}
+\begin{code}
 mutual
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
                          → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
@@ -1339,7 +1428,8 @@ mutual
   compile (#⁺ x)               = ldc (int (+ x)) >> ∅
   compile mul                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
   compile sub                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
-
+\end{code}
+\begin{code}
 _ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
 _ = refl
 
