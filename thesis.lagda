@@ -435,6 +435,7 @@ In this subsection we will, in preparation of the main matter of this thesis,
 introduce the way typed deductive systems can be formalized in Agda. As
 promised, we will formalize the Simply Typed λ Calculus.
 \subsubsection{Syntax}
+\label{lambda_syntax}
 First, we define the types in our system.
 \begin{code}[hide]
 module Hidden3 where
@@ -483,6 +484,7 @@ representable. Thus, whenever we work with a term of our calculus, it is
 guaranteed to be well-typed, which often simplifies things. We will see an
 example of this in what follows.
 \subsubsection{Semantics by Embedding into Agda}
+\label{lambda_semantics}
 Now that we have defined the syntax, the next step is to give it semantics. We
 will do this in a straightforward manned by way of embedding our calculus into
 Agda.
@@ -812,11 +814,12 @@ _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
+\label{secd_types}
 We start by defining the atomic constants our machine will recognize. We will
 limit ourselves to booleans and integers.
 \begin{code}
 data Const : Set where
-  true false : Const
+  bool : Bool → Const
   int : ℤ → Const
 \end{code}
 Next, we define which types our machine recognizes.
@@ -835,9 +838,8 @@ the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 Now we define the type assignment of constants.
 \begin{code}
 typeof : Const → Type
-typeof true    = boolT
-typeof false   = boolT
-typeof (int x) = intT
+typeof (bool _) = boolT
+typeof (int _)  = intT
 \end{code}
 Next, we define the typed stack, environment, and function dump.
 \begin{code}
@@ -995,8 +997,6 @@ stack. Their types are outlined in Figure \ref{instypes}.
   \label{instypes}
 \end{figure}
 \begin{code}[hide]
-    lett : ∀ {s e f x}
-         → ⊢ (x ∷ s) # e # f ⊳ s # (x ∷ e) # f
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     flp  : ∀ {s e f a b}
@@ -1042,6 +1042,7 @@ The first one is simply the check for an empty list. The second one is more
 interesting, it constructs a sequence of instructions which will load a list of
 natural numbers.
 \subsection{Examples}
+\label{syntax_tests}
 In this section we present some examples of SECD programs in our current
 formalism. Starting with trivial ones, we will work our way up to using full
 capabilities of the machine.
@@ -1273,13 +1274,52 @@ Here we say that in order to execute the code
 \]
 we require realizations of the stack \A{s}, environment \A{e}, and function dump
 \A{f}. We will return the stack the code stops execution in, wrapped in the
-\D{Delay} monad in order to allow for a non-structurally inductive process.
+\D{Delay} monad in order to allow for non-structurally inductive calls that will
+be necessary in some cases.
+
+We proceed by structural induction on the last argument, i.e. the code. We start
+with the empty run,
 \begin{code}
 run s e d ∅ = now s
+\end{code}
+In the case of an empty run, it holds that $s = s'$ and so we simply finish the
+execution, returning the current stack.
+
+Next we consider all the cases when the run is not empty. We start with the
+instruction \I{ldf},
+\begin{code}
 run s e d (ldf code >> r) =
   run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
+\end{code}
+Recall that this instruction is supposed to load a function. Since the
+semantical meaning of a function is a closure, this is what we must construct.
+We do so out of the code, given as an argument to \I{ldf}, and the current
+environment and function dump. We put this closure on the stack and proceed with
+execution of the rest of the run.
+\begin{code}
+run s e d (ld at >> r) = run (lookupᵉ e at , s) e d r
+\end{code}
+This instruction loads a value from the environment with the help of the
+auxiliary function \F{lookupᵉ} and puts it on the stack.
+\begin{code}
+run s e d (ldc const >> r) = run (makeConst const , s) e d r
+  where makeConst : (c : Const) → ⟦ typeof c ⟧ᵗ
+        makeConst (bool x) = x
+        makeConst (int x) = x
+\end{code}
+In order to load a constant we introduce an auxiliary conversion function for
+converting from an embedded constant to a semantical value. The constant is then
+put on the stack.
+\begin{code}
 run s e d (ldr at >> r) =
   run (lookupᵈ d at , s) e d r
+\end{code}
+This instruction loads a closure from the function dump and puts it on the
+stack. Similarly to \I{ld}, we use an auxiliary function, in this case
+\F{lookupᵈ}.
+
+Next we handle the instruction for function application,
+\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later
     λ where
@@ -1290,31 +1330,71 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
                         (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump)
                         code
           run (b , s) e d r
+\end{code}
+Here we have to employ coinduction for the first time, as we need to perform a
+call to \F{run} which is not structurally recursive. This call is used to
+evaluate the closure from the empty stack \I{⋅} in environment \A{fE} extended
+with the function argument \A{a}. The function dump also needs to be extended
+with the closure being evaluated in order to allow recursive calls. Once the
+call to \F{run} has returned, we grab the first item on the stack \A{b} and
+resume execution of the rest of the run \A{r} with \A{b} put on the stack.
+
+We will now handle recursive tail calls, i.e. the instruction \I{rap}. We need
+to make an additional case split here on the rest of the run \A{r}, as a tail
+call can really only occur if \I{rap} is the last instruction in the current
+run. However, there is no syntactic restriction which would prevent more
+instructions to follow a \I{rap}.
+\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
   later
     λ where
       .force →
         run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> x >> r) =
+\end{code}
+Above is the case when we can perform the tail call. In this case, the types
+align: recall that in the type signature of \F{run} we promised to return a
+stack of the type \A{s'}. Here, as \I{rap} is the last instruction, this means a
+stack containing a single item of some type \A{β}. This is exactly what the
+closure on the stack constructs. Hence, we can shift execution to the closure.
+
+If there are more instructions after \I{rap}, we are not so lucky: here we don't
+know what \A{s'} is, and we have but one way to obtain a stack of this type:
+proceed with evaluating rest of the run \A{r}. As such, we are unable to perform
+a tail call. Instead, we convert \I{rap} to \I{ap}, thus performing standard
+function application.
+\begin{code}
+run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
   later
     λ where
       .force →
-        run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> x >> r)
+        run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> r)
+\end{code}
+Next we have the \I{rtn} instruction which simply drops all items from the stack
+but the topmost one. Once again, we have no guarantee that there are no more
+instructions after \I{rtn}, hence we make a recursive call to \F{run}. Under
+normal circumstances, \A{r} is the empty run \I{∅} and execution returns.      
+\begin{code}
 run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
-run (x , s) e d (lett >> r)      = run s (x , e) d r
+\end{code}
+The \I{if} instruction follows,
+\begin{code}
+run (test , s) e d (if c₁ c₂ >> r) with test
+… | tt = later λ where .force → run s e d (c₁ >+> r)
+… | ff = later λ where .force → run s e d (c₂ >+> r)
+\end{code}
+This instruction examines the boolean value on top of the stack and prepends the
+correct branch to \A{r}.
+
+The instructions that remain are those implementing primitive operations which
+only manipulate the stack. We include them here for completeness' sake.
+\begin{code}
 run s e d (nil >> r)             = run ([] , s) e d r
-run s e d (ldc const >> r)       = run (makeConst const , s) e d r
-  where makeConst : (c : Const) → ⟦ typeof c ⟧ᵗ
-        makeConst true    = tt
-        makeConst false   = ff
-        makeConst (int x) = x
-run s e d (ld at >> r)           = run (lookupᵉ e at , s) e d r
 run (x , y , s) e d (flp >> r)   = run (y , x , s) e d r
 run (x , xs , s) e d (cons >> r) = run (x ∷ xs , s) e d r
 run ([] , s) e d (head >> r)     = never
 run (x ∷ _ , s) e d (head >> r)  = run (x , s) e d r
 run ([] , s) e d (tail >> r)     = never
-run (x ∷ xs , s) e d (tail >> r) = run (xs , s) e d r
+run (_ ∷ xs , s) e d (tail >> r) = run (xs , s) e d r
 run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
 run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
 run ((_ , y) , s) e d (snd >> r) = run (y , s) e d r
@@ -1330,11 +1410,16 @@ run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
         compare {listT xs}  a b = ⌊ length a ≟ℕ length b ⌋ -- TDO
         compare {_ ⇒ _} _ _     = ff
 run (x , s) e d (nt >> r)       = run (not x , s) e d r
-run (bool , s) e d (if c₁ c₂ >> r) with bool
-… | tt = later λ where .force → run s e d (c₁ >+> r)
-… | ff = later λ where .force → run s e d (c₂ >+> r)
-
 \end{code}
+The only interesting cases here are \I{head} and \I{tail} when called on an
+empty list. In this case, we signal an error by terminating the execution,
+returning instead an infinitely delayed value.
+
+\subsubsection{Tests}
+Being done with the trickiest part, we now define an auxiliary function for use
+in tests. It takes some code which starts from an empty initial state and another
+argument, which signifies an upper bound on the number of indirections that may
+be encountered during execution. If this bound is exceeded, \I{nothing} is returned.
 \begin{code}
 runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
                → ℕ
@@ -1343,21 +1428,21 @@ runℕ c n = runFor n
   do
     (x , _) ← run ⋅ ⋅ ⋅ c
     now x
-
-
 \end{code}
+Now for the promised tests, we will evaluate the examples from \ref{syntax_tests}.
 \begin{code}
-_ : runℕ 2+3 1 ≡ just (+ 5)
+_ : runℕ 2+3 0 ≡ just (+ 5)
 _ = refl
 
-_ : runℕ inc2 2 ≡ just (+ 3)
+_ : runℕ inc2 1 ≡ just (+ 3)
 _ = refl
 
-_ : runℕ λTest 3 ≡ just (+ 3)
+_ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
 \end{code}
+So far so good! Now for something more complicated, we will \F{foldl} the list
+$[1,2,3,4]$ with \F{plus}. Below we have the code to achieve this,
 \begin{code}
-
 foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 foldTest =
      foldl
@@ -1365,39 +1450,66 @@ foldTest =
   >> ap
   >> ldc (int (+ 0))
   >> ap
-  >> (loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ []))
+  >> loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ [])
   >+> ap
   >> ∅
-
-_ : runℕ foldTest 29 ≡ just (+ 10)
-_ = refl
 \end{code}
+And indeed,
 \begin{code}
+_ : runℕ foldTest 28 ≡ just (+ 10)
+_ = refl
 \end{code}
 \section{Compilation from a higher-level language}
 \label{compilation}
+As a final step, we will define a typed (though inconsistent) λ calculus and
+implement compilation to typed SECD instructions from previous sections.
+
+We will reuse the types defined in Section \ref{secd_types}, which will not only
+make compilation cleaner, but also makes sense from a moral standpoint, as we
+want our λ calculus to model the capabilities of our SECD machine. Hence, a
+context is a list of (SECD) types,
 \begin{code}
 Ctx = List Type
 \end{code}
+As for the typing relation, we use a similar trick as with SECD to allow
+recursive calls. We keep two contexts, \A{Γ} for tracking assumptions, as in
+\ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
+recursively.
 \begin{code}
 infix 2 _×_⊢_
 data _×_⊢_ : Ctx → Ctx → Type → Set where
   var : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
   ƛ_  : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_ : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
+\end{code}
+The first three typing rules model closely the ones from \ref{lambda_syntax},
+with the addition of the function context \A{Ψ}.
+
+Next, we have a variation of \I{var} for loading functions from \A{Ψ},
+\begin{code}
   rec : ∀ {Ψ Γ α β} → (α ⇒ β) ∈ Ψ → Ψ × Γ ⊢ α ⇒ β
+\end{code}
+We also have an if-then-else construct and a polymorphic comparison operator,
+\begin{code}
   if_then_else_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ boolT
                             → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α
                             → Ψ × Γ ⊢ α
   _==_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α → Ψ × Γ ⊢ boolT
+\end{code}
+Finally, we have the integers and some primitive operations on them,
+\begin{code}
   #_ : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
-  #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
   mul : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
   sub : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
+
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
+
+#⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
+#⁺ n = # (+ n)
 \end{code}
+As an example, consider the factorial function in this formalism,
 \begin{code}
 fac : [] × [] ⊢ (intT ⇒ intT)
 fac = ƛ if (var 𝟎 == #⁺ 1)
@@ -1405,6 +1517,10 @@ fac = ƛ if (var 𝟎 == #⁺ 1)
           else (mul $ (rec 𝟎 $ (sub $ var 𝟎 $ #⁺ 1))
                     $ var 𝟎)
 \end{code}
+For the compilation, we use a scheme of two mutually recursive functions
+adapted from \parencite{modernsecd}. The first function, \F{compileT}, is used
+to compile expressions in the tail position, whereas \F{compile} is used for the
+other cases.
 \begin{code}
 mutual
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
@@ -1416,7 +1532,8 @@ mutual
     compile t >+> if (compileT a) (compileT b) >> ∅
   compileT t = compile t >+> rtn >> ∅
 
-  compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
+  compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α
+                        → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
   compile (var x)              = ld x >> ∅
   compile (ƛ t)                = ldf (compileT t) >> ∅
   compile (f $ x)              = compile f >+> compile x >+> ap >> ∅
@@ -1425,14 +1542,14 @@ mutual
     compile t >+> if (compile a) (compile b) >> ∅
   compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
   compile (# x)                = ldc (int x) >> ∅
-  compile (#⁺ x)               = ldc (int (+ x)) >> ∅
   compile mul                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
   compile sub                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
 \end{code}
+As a final test, we can apply the function \F{fac} to the number 5, compile the
+expression, and evaluate it on the SECD,
 \begin{code}
 _ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
 _ = refl
-
 \end{code}
 
 \chapter{Epilogue}
