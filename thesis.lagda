@@ -342,6 +342,7 @@ about the proof and simply ask whether the two values are equal or not,
 \begin{code}[hide]
 open import Data.Integer using (ℤ)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ'_)
+open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
 import Relation.Nullary as N
 import Data.Empty as E
 
@@ -397,9 +398,6 @@ To implement De Bruijn indices in Agda, we will express what it means for a
 variable to be present in a context. We shall assume that a context is a list of
 types, as this is how contexts will be defined in the next subsection. We will
 express list membership as a new data type,
-\begin{code}[hide]
-open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
-\end{code}
 \begin{code}
 data _∈_ {A : Set} : A → List A → Set where
   here : ∀ {x xs} → x ∈ (x ∷ xs)
@@ -608,6 +606,7 @@ module HiddenX where
   _ = refl
 \end{code}
 \subsection{The Delay Monad}
+\label{delay_monad}
 \begin{code}
 mutual
   data Delay (A : Set) (i : Size) : Set where
@@ -1260,6 +1259,21 @@ lookupᵈ f (there w)  = lookupᵈ (tailᵈ f) w
 dropping the elements as necessary with \F{tailᵈ} until we get to the desired
 closure.
 
+Lastly, we define a function for comparing two values of the machine,
+\begin{code}
+compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → ⟦ boolT ⟧ᵗ
+compare {intT} a b                   = ⌊ a ≟ℤ b ⌋
+compare {boolT} a b                  = ⌊ a ≟B b ⌋
+compare {pairT _ _} (a , b) (c , d)  = compare a c ∧ compare b d
+compare {listT _} [] []              = tt
+compare {listT _} (a ∷ as) (b ∷ bs)  = compare a b ∧ compare as bs
+compare {listT _} _ _                = ff
+compare {_ ⇒ _} _ _                  = ff
+\end{code}
+The above code implements standard comparison by structural induction. The only
+worthwhile remark here is that we refuse to perform any meaningful comparison of
+functions, instead treating any two functions as dissimilar.
+
 \subsection{Execution}
 Now we are finally ready to define the execution of instructions. Let us start
 with the type,
@@ -1333,11 +1347,11 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
 \end{code}
 Here we have to employ coinduction for the first time, as we need to perform a
 call to \F{run} which is not structurally recursive. This call is used to
-evaluate the closure from the empty stack \I{⋅} in environment \A{fE} extended
-with the function argument \A{a}. The function dump also needs to be extended
-with the closure being evaluated in order to allow recursive calls. Once the
-call to \F{run} has returned, we grab the first item on the stack \A{b} and
-resume execution of the rest of the run \A{r} with \A{b} put on the stack.
+evaluate the closure, starting from the empty stack \I{⋅}, in environment \A{fE}
+extended with the function argument \A{a}. The function dump also needs to be
+extended with the closure being evaluated in order to allow recursive calls.
+Once the call to \F{run} has returned, we grab the first item on the stack \A{b}
+and resume execution of the rest of the run \A{r} with \A{b} put on the stack.
 
 We will now handle recursive tail calls, i.e. the instruction \I{rap}. We need
 to make an additional case split here on the rest of the run \A{r}, as a tail
@@ -1359,9 +1373,9 @@ closure on the stack constructs. Hence, we can shift execution to the closure.
 
 If there are more instructions after \I{rap}, we are not so lucky: here we don't
 know what \A{s'} is, and we have but one way to obtain a stack of this type:
-proceed with evaluating rest of the run \A{r}. As such, we are unable to perform
-a tail call. Instead, we convert \I{rap} to \I{ap}, thus performing standard
-function application.
+proceed with evaluating the rest of the run \A{r}. As such, we are unable to
+perform a tail call. Thus, we side-step the problem by converting \I{rap} to
+\I{ap}, performing standard function application.
 \begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
   later
@@ -1369,10 +1383,16 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
       .force →
         run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> r)
 \end{code}
+This approach also has the advantage of being able to use the instruction
+\I{rap} indiscriminately instead of \I{ap} in all situations, at the cost of
+delaying the execution slightly. However, as we will see in Section
+\ref{compilation}, this is hardly necessary.
+
 Next we have the \I{rtn} instruction which simply drops all items from the stack
 but the topmost one. Once again, we have no guarantee that there are no more
 instructions after \I{rtn}, hence we make a recursive call to \F{run}. Under
-normal circumstances, \A{r} is the empty run \I{∅} and execution returns.      
+normal circumstances, \A{r} is the empty run \I{∅} and execution returns the
+stack here constructed.
 \begin{code}
 run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
 \end{code}
@@ -1388,38 +1408,32 @@ correct branch to \A{r}.
 The instructions that remain are those implementing primitive operations which
 only manipulate the stack. We include them here for completeness' sake.
 \begin{code}
-run s e d (nil >> r)             = run ([] , s) e d r
-run (x , y , s) e d (flp >> r)   = run (y , x , s) e d r
-run (x , xs , s) e d (cons >> r) = run (x ∷ xs , s) e d r
-run ([] , s) e d (head >> r)     = never
-run (x ∷ _ , s) e d (head >> r)  = run (x , s) e d r
-run ([] , s) e d (tail >> r)     = never
-run (_ ∷ xs , s) e d (tail >> r) = run (xs , s) e d r
-run (x , y , s) e d (pair >> r)  = run ((x , y) , s) e d r
-run ((x , _) , s) e d (fst >> r) = run (x , s) e d r
-run ((_ , y) , s) e d (snd >> r) = run (y , s) e d r
-run (x , y , s) e d (add >> r)   = run (x + y , s) e d r
-run (x , y , s) e d (sub >> r)   = run (x - y , s) e d r
-run (x , y , s) e d (mul >> r)   = run (x * y , s) e d r
-run (a , b , s) e d (eq? >> r)   = run (compare a b , s) e d r
-  where compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → ⟦ boolT ⟧ᵗ
-        compare {intT} a b  = ⌊ a ≟ℤ b ⌋
-        compare {boolT} a b = ⌊ a ≟B b ⌋
-        compare {pairT _ _} (a₁ , a₂) (b₁ , b₂) =
-          (compare a₁ b₁) ∧ (compare a₂ b₂)
-        compare {listT xs}  a b = ⌊ length a ≟ℕ length b ⌋ -- TDO
-        compare {_ ⇒ _} _ _     = ff
-run (x , s) e d (nt >> r)       = run (not x , s) e d r
+run s e d (nil >> r)              = run ([] , s) e d r
+run (x , y , s) e d (flp >> r)    = run (y , x , s) e d r
+run (x , xs , s) e d (cons >> r)  = run (x ∷ xs , s) e d r
+run ([] , s) e d (head >> r)      = never
+run (x ∷ _ , s) e d (head >> r)   = run (x , s) e d r
+run ([] , s) e d (tail >> r)      = never
+run (_ ∷ xs , s) e d (tail >> r)  = run (xs , s) e d r
+run (x , y , s) e d (pair >> r)   = run ((x , y) , s) e d r
+run ((x , _) , s) e d (fst >> r)  = run (x , s) e d r
+run ((_ , y) , s) e d (snd >> r)  = run (y , s) e d r
+run (x , y , s) e d (add >> r)    = run (x + y , s) e d r
+run (x , y , s) e d (sub >> r)    = run (x - y , s) e d r
+run (x , y , s) e d (mul >> r)    = run (x * y , s) e d r
+run (a , b , s) e d (eq? >> r)    = run (compare a b , s) e d r
+run (x , s) e d (nt >> r)         = run (not x , s) e d r
 \end{code}
 The only interesting cases here are \I{head} and \I{tail} when called on an
 empty list. In this case, we signal an error by terminating the execution,
-returning instead an infinitely delayed value.
+returning instead an infinitely delayed value with \F{never}.
 
-\subsubsection{Tests}
+\subsection{Tests}
 Being done with the trickiest part, we now define an auxiliary function for use
-in tests. It takes some code which starts from an empty initial state and another
-argument, which signifies an upper bound on the number of indirections that may
-be encountered during execution. If this bound is exceeded, \I{nothing} is returned.
+in tests. It takes some code which starts from an empty initial state. In
+addition, there is a second argument, which signifies an upper bound on the
+number of indirections that may be encountered during execution. If this bound
+is exceeded, \I{nothing} is returned.
 \begin{code}
 runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
                → ℕ
@@ -1429,6 +1443,8 @@ runℕ c n = runFor n
     (x , _) ← run ⋅ ⋅ ⋅ c
     now x
 \end{code}
+Here we made use of \F{runFor} defined in Section \ref{delay_monad}.
+
 Now for the promised tests, we will evaluate the examples from \ref{syntax_tests}.
 \begin{code}
 _ : runℕ 2+3 0 ≡ just (+ 5)
@@ -1440,7 +1456,7 @@ _ = refl
 _ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
 \end{code}
-So far so good! Now for something more complicated, we will \F{foldl} the list
+So far, so good! Now for something more complicated, we will \F{foldl} the list
 $[1,2,3,4]$ with \F{plus}. Below we have the code to achieve this,
 \begin{code}
 foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
@@ -1462,12 +1478,13 @@ _ = refl
 \section{Compilation from a higher-level language}
 \label{compilation}
 As a final step, we will define a typed (though inconsistent) λ calculus and
-implement compilation to typed SECD instructions from previous sections.
+implement compilation to typed SECD instructions defined in previous sections.
 
-We will reuse the types defined in Section \ref{secd_types}, which will not only
-make compilation cleaner, but also makes sense from a moral standpoint, as we
-want our λ calculus to model the capabilities of our SECD machine. Hence, a
-context is a list of (SECD) types,
+\subsection{Syntax}
+We will reuse the types defined in Section \ref{secd_types}. This will not only
+make compilation cleaner, but also makes sense from a moral standpoint: we want
+our λ calculus to model the capabilities of our SECD machine. Hence, a context
+is a list of (SECD) types,
 \begin{code}
 Ctx = List Type
 \end{code}
@@ -1482,7 +1499,7 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
   ƛ_  : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_ : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
 \end{code}
-The first three typing rules model closely the ones from \ref{lambda_syntax},
+The first three typing rules resemble closely the ones from \ref{lambda_syntax},
 with the addition of the function context \A{Ψ}.
 
 Next, we have a variation of \I{var} for loading functions from \A{Ψ},
@@ -1517,6 +1534,7 @@ fac = ƛ if (var 𝟎 == #⁺ 1)
           else (mul $ (rec 𝟎 $ (sub $ var 𝟎 $ #⁺ 1))
                     $ var 𝟎)
 \end{code}
+\subsection{Compilation}
 For the compilation, we use a scheme of two mutually recursive functions
 adapted from \parencite{modernsecd}. The first function, \F{compileT}, is used
 to compile expressions in the tail position, whereas \F{compile} is used for the
@@ -1545,6 +1563,8 @@ mutual
   compile mul                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
   compile sub                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
 \end{code}
+
+
 As a final test, we can apply the function \F{fac} to the number 5, compile the
 expression, and evaluate it on the SECD,
 \begin{code}
