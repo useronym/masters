@@ -220,8 +220,8 @@ module Hidden where
 \end{code}
 \begin{code}
   data ℕ : Set where
-    zero : ℕ
-    suc  : ℕ → ℕ
+    zero  : ℕ
+    suc   : ℕ → ℕ
 \end{code}
 Here we have a nullary constructor for the value zero, and then a unary
 constructor which corresponds to the successor function. As an example, consider the
@@ -231,8 +231,8 @@ number 3, which would be encoded as~\AgdaInductiveConstructor{suc(suc(suc\
 As an example of a function on the naturals, let us define the addition function.
 \begin{code}
   _+_ : ℕ → ℕ → ℕ
-  zero + b  = b
-  suc a + b = suc (a + b)
+  zero + b   = b
+  suc a + b  = suc (a + b)
 \end{code}
 We proceed by induction on the left argument: if that number is zero, the result
 is simply the right argument. If the left argument is a successor to some number
@@ -289,8 +289,8 @@ The proof is trivial, as $1+1$ reduces directly to two. A more interesting proof
 would be that of associativity of addition,
 \begin{code}
   +-assoc : ∀ {a b c} → a + (b + c) ≡ (a + b) + c
-  +-assoc {zero}  = refl
-  +-assoc {suc a} = let a+[b+c]≡[a+b]+c = +-assoc {a}
+  +-assoc {zero}   = refl
+  +-assoc {suc a}  = let a+[b+c]≡[a+b]+c = +-assoc {a}
                       in ≡-cong suc a+[b+c]≡[a+b]+c
     where ≡-cong : {A B : Set} {a b : A} → (f : A → B) → a ≡ b → f a ≡ f b
           ≡-cong f refl = refl
@@ -304,8 +304,8 @@ equality to those comparisons which are decidable. Firstly, we will need the
 definition of a decidable relation.
 \begin{code}
 data Dec (R : Set) : Set where
-  yes : R → Dec R
-  no  : ¬ R → Dec R
+  yes  : R → Dec R
+  no   : ¬ R → Dec R
 \end{code}
 This data type allows us to embed either a \I{yes} or a \I{no} answer as to
 whether \A{R} is inhabited. Now we can define what it means for a type to
@@ -323,12 +323,12 @@ open import Data.Nat using (ℕ; zero; suc)
 \end{code}
 \begin{code}
 _≟ℕ_ : Decidable ℕ
-zero ≟ℕ zero    = yes refl
-(suc _) ≟ℕ zero = no λ()
-zero ≟ℕ (suc _) = no λ()
+zero ≟ℕ zero     = yes refl
+(suc _) ≟ℕ zero  = no λ()
+zero ≟ℕ (suc _)  = no λ()
 (suc m) ≟ℕ (suc n) with m ≟ℕ n
 … | yes refl  = yes refl
-… | no ¬m≡n = no λ m≡n → ¬m≡n (suc-injective m≡n)
+… | no ¬m≡n   = no λ m≡n → ¬m≡n (suc-injective m≡n)
   where suc-injective : ∀ {m n} → suc m ≡ suc n → m ≡ n
         suc-injective refl = refl
 \end{code}
@@ -336,8 +336,8 @@ Given a proof of equality of two values of a decidable type, we can forget all
 about the proof and simply ask whether the two values are equal or not,
 \begin{code}
 ⌊_⌋ : {A : Set} {a b : A} → Dec (a ≡ b) → Bool
-⌊ yes p ⌋ = tt
-⌊ no ¬p ⌋ = ff
+⌊ yes p ⌋  = tt
+⌊ no ¬p ⌋  = ff
 \end{code}
 \begin{code}[hide]
 open import Data.Integer using (ℤ)
@@ -347,15 +347,15 @@ import Relation.Nullary as N
 import Data.Empty as E
 
 _≟B_ : Decidable Bool
-tt  ≟B tt = yes refl
-ff ≟B ff  = yes refl
-tt  ≟B ff = no λ()
-ff ≟B tt  = no λ()
+tt  ≟B tt  = yes refl
+ff ≟B ff   = yes refl
+tt  ≟B ff  = no λ()
+ff ≟B tt   = no λ()
 
 _≟ℤ_ : Decidable ℤ
 a ≟ℤ b with a ≟ℤ' b
-… | N.yes refl = yes refl
-… | N.no ¬p = no λ x → ⊥⊥ (¬p x)
+… | N.yes refl  = yes refl
+… | N.no ¬p     = no λ x → ⊥⊥ (¬p x)
   where ⊥⊥ : E.⊥ → ⊥
         ⊥⊥ ()
 \end{code}
@@ -400,8 +400,8 @@ types, as this is how contexts will be defined in the next subsection. We will
 express list membership as a new data type,
 \begin{code}
 data _∈_ {A : Set} : A → List A → Set where
-  here : ∀ {x xs} → x ∈ (x ∷ xs)
-  there : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+  here   : ∀ {x xs} → x ∈ (x ∷ xs)
+  there  : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
 infix 10 _∈_
 \end{code}
 The first constructor says that an element is present in a list if that element
@@ -413,8 +413,8 @@ Now we can also define a function which, given a proof that an element is in a
 list, returns the aforementioned element.
 \begin{code}
 lookup : ∀ {A x xs} → x ∈ xs → A
-lookup {x = x} here = x
-lookup (there w)    = lookup w
+lookup {x = x} here  = x
+lookup (there w)     = lookup w
 \end{code}
 We will also define shorthands to construct often-used elements of \D{\_∈\_} for
 use in examples later on.
@@ -440,8 +440,8 @@ module Hidden3 where
 \end{code}
 \begin{code}
   data ★ : Set where
-    ι   : ★
-    _⇒_ : ★ → ★ → ★
+    ι    : ★
+    _⇒_  : ★ → ★ → ★
   infixr 20 _⇒_
 \end{code}
 Here we defined some atomic type \I{ι} and a binary type constructor for
@@ -454,9 +454,9 @@ Now we are finally able to define the deductive rules that make up the calculus,
 using De Bruijn indices as explained above.
 \begin{code}
   data _⊢_ : Context → ★ → Set where
-    var : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
-    ƛ_  : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
-    _$_ : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
+    var  : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
+    ƛ_   : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
+    _$_  : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
   infix 4 _⊢_
   infixr 5 ƛ_
   infixl 10 _$_
@@ -490,8 +490,8 @@ Agda.
 First, we define the semantics of types, by assigning Agda types to types in our calculus.
 \begin{code}
   ⟦_⟧★ : ★ → Set
-  ⟦ ι ⟧★     = ℕ
-  ⟦ α ⇒ β ⟧★ = ⟦ α ⟧★ → ⟦ β ⟧★
+  ⟦ ι ⟧★      = ℕ
+  ⟦ α ⇒ β ⟧★  = ⟦ α ⟧★ → ⟦ β ⟧★
 \end{code}
 Here we choose to realize our atomic type as the type of Natural numbers. These
 are chosen for being a nontrivial type. The function type is realized
@@ -500,8 +500,8 @@ inductively as an Agda function type.
 Next, we give semantics to contexts.
 \begin{code}
   ⟦_⟧C : Context → Set
-  ⟦ [] ⟧C     = ⊤
-  ⟦ x ∷ xs ⟧C = ⟦ x ⟧★ × ⟦ xs ⟧C
+  ⟦ [] ⟧C      = ⊤
+  ⟦ x ∷ xs ⟧C  = ⟦ x ⟧★ × ⟦ xs ⟧C
 \end{code}
 The empty context can be realized trivially by the unit type. A non-empty
 context is realized as the product of the realization of the first element
@@ -515,8 +515,8 @@ induction with regard to the structure of the term, we must operate on open term
 The second argument is a realization of the context in the term, which we will
 need for variables,
 \begin{code}
-  ⟦ var here ⟧ (x , _)       = x
-  ⟦ var (there x) ⟧ (_ , xs) = ⟦ var x ⟧ xs
+  ⟦ var here ⟧ (x , _)        = x
+  ⟦ var (there x) ⟧ (_ , xs)  = ⟦ var x ⟧ xs
 \end{code}
 Here we case-split on the variable, in case it is zero we take the first element
 of the context, otherwise we recurse into the context until we hit zero. Note
@@ -525,13 +525,13 @@ argument to \I{var} is a proof of membership for Γ. Thus, Agda realizes that Γ
 can never be empty and we need not bother ourselves with a case-split for the
 empty context; indeed, we would be hard-pressed to give it an implementation.
 \begin{code}
-  ⟦ ƛ x ⟧ γ                  = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
+  ⟦ ƛ x ⟧ γ                   = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
 \end{code}
 The case for lambda abstraction constructs an Agda function which will take as
 the argument a value of the corresponding type and compute the semantics for the
 lambda's body, after extending the context with the argument.
 \begin{code}
-  ⟦ f $ x ⟧ γ                = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
+  ⟦ f $ x ⟧ γ                 = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
 \end{code}
 Finally, to give semantics to function application, we simply perform Agda
 function application on the subexpressions, after having computed their
@@ -567,8 +567,8 @@ open import Data.Maybe using (Maybe; just; nothing)
 \begin{code}
 mutual
   data Stream (A : Set) (i : Size) : Set where
-    []ˢ : Stream A i
-    _∷ˢ_ : A → ∞Stream A i → Stream A i
+    []ˢ   : Stream A i
+    _∷ˢ_  : A → ∞Stream A i → Stream A i
 
   record ∞Stream (A : Set) (i : Size) : Set where
     coinductive
@@ -593,12 +593,12 @@ module HiddenX where
 \begin{code}
   step : ℕ → ℕ
   step n with even? n
-  … | tt = ⌊ n /2⌋
-  … | ff = 3 * n + 1
+  … | tt  = ⌊ n /2⌋
+  … | ff  = 3 * n + 1
 
   collatz : ℕ → Stream ℕ ∞
-  collatz 1 = 1 ∷ˢ λ where .force → []ˢ
-  collatz n = n ∷ˢ λ where .force → collatz (step n)
+  collatz 1  = 1 ∷ˢ λ where .force → []ˢ
+  collatz n  = n ∷ˢ λ where .force → collatz (step n)
   \end{code}
   \begin{code}
   _ : takeˢ 10 (collatz 12)
@@ -610,8 +610,8 @@ module HiddenX where
 \begin{code}
 mutual
   data Delay (A : Set) (i : Size) : Set where
-    now   : A → Delay A i
-    later : ∞Delay A i → Delay A i
+    now    : A → Delay A i
+    later  : ∞Delay A i → Delay A i
 
   record ∞Delay (A : Set) (i : Size) : Set where
     coinductive
@@ -625,15 +625,15 @@ never = later λ where .force → never
 \end{code}
 \begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
-runFor zero (now x)      = just x
-runFor zero (later _)    = nothing
-runFor (suc _) (now x)   = just x
-runFor (suc n) (later x) = runFor n (x .force)
+runFor zero (now x)       = just x
+runFor zero (later _)     = nothing
+runFor (suc _) (now x)    = just x
+runFor (suc n) (later x)  = runFor n (force x)
 \end{code}
 \begin{code}
 _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
-now x >>= f   = f x
-later x >>= f = later λ where .force → (x .force) >>= f
+now x >>= f    = f x
+later x >>= f  = later λ where .force → (force x) >>= f
 \end{code}
 \begin{code}[hide]
 open import Data.Integer using (+_; _+_; _-_; _*_)
@@ -784,8 +784,8 @@ whose values are finite sequences of values such that each value is in relation
 with the next.
 \begin{code}
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
-  ∅    : ∀ {a} → Path R a a
-  _>>_ : ∀ {a b c} → R a b → Path R b c → Path R a c
+  ∅     : ∀ {a} → Path R a a
+  _>>_  : ∀ {a b c} → R a b → Path R b c → Path R a c
 infixr 5 _>>_
 \end{code}
 The first constructor creates an empty path. The second takes an
@@ -808,8 +808,8 @@ Furthermore, we can also concatenate two paths, given that the end of the first
 path connects to the start of the second one.
 \begin{code}
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
-∅        >+> r = r
-(x >> l) >+> r = x >> (l >+> r)
+∅        >+> r  = r
+(x >> l) >+> r  = x >> (l >+> r)
 infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
@@ -818,16 +818,16 @@ We start by defining the atomic constants our machine will recognize. We will
 limit ourselves to booleans and integers.
 \begin{code}
 data Const : Set where
-  bool : Bool → Const
-  int : ℤ → Const
+  bool  : Bool → Const
+  int   : ℤ → Const
 \end{code}
 Next, we define which types our machine recognizes.
 \begin{code}
 data Type : Set where
-  intT boolT : Type
-  pairT : Type → Type → Type
-  listT : Type → Type
-  _⇒_ : Type → Type → Type
+  intT boolT  : Type
+  pairT       : Type → Type → Type
+  listT       : Type → Type
+  _⇒_         : Type → Type → Type
 infixr 15 _⇒_
 \end{code}
 Firstly, there are types corresponding to the constants we have already defined
@@ -837,14 +837,14 @@ the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 Now we define the type assignment of constants.
 \begin{code}
 typeof : Const → Type
-typeof (bool _) = boolT
-typeof (int _)  = intT
+typeof (bool _)  = boolT
+typeof (int _)   = intT
 \end{code}
 Next, we define the typed stack, environment, and function dump.
 \begin{code}
-Stack   = List Type
-Env     = List Type
-FunDump = List Type
+Stack    = List Type
+Env      = List Type
+FunDump  = List Type
 \end{code}
 For now, these only store the information regarding the types of the values in
 the machine. Later, when defining semantics, we will give realizations to these,
@@ -857,9 +857,9 @@ function dump.
 record State : Set where
   constructor _#_#_
   field
-    s : Stack
-    e : Env
-    f : FunDump
+    s  : Stack
+    e  : Env
+    f  : FunDump
 \end{code}
 Note that, unlike in the standard presentation of SECD Machines which we saw in
 chapter ?, here the state does not include the code. This is because we are
@@ -1034,8 +1034,8 @@ nil? : ∀ {s e f a} → ⊢ (listT a ∷ s) # e # f ↝ (boolT ∷ s) # e # f
 nil? = nil >| eq?
 
 loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
-loadList [] = nil >> ∅
-loadList (x ∷ xs) = loadList xs >+> ldc (int (+ x)) >| cons
+loadList []        = nil >> ∅
+loadList (x ∷ xs)  = loadList xs >+> ldc (int (+ x)) >| cons
 \end{code}
 The first one is simply the check for an empty list. The second one is more
 interesting, it constructs a sequence of instructions which will load a list of
@@ -1159,11 +1159,11 @@ We start by giving semantics to the types of our machine,
 \begin{code}
 mutual
   ⟦_⟧ᵗ : Type → Set
-  ⟦ intT ⟧ᵗ        = ℤ
-  ⟦ boolT ⟧ᵗ       = Bool
-  ⟦ pairT t₁ t₂ ⟧ᵗ = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
-  ⟦ a ⇒ b ⟧ᵗ       = Closure a b
-  ⟦ listT t ⟧ᵗ     = List ⟦ t ⟧ᵗ
+  ⟦ intT ⟧ᵗ         = ℤ
+  ⟦ boolT ⟧ᵗ        = Bool
+  ⟦ pairT t₁ t₂ ⟧ᵗ  = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
+  ⟦ a ⇒ b ⟧ᵗ        = Closure a b
+  ⟦ listT t ⟧ᵗ      = List ⟦ t ⟧ᵗ
 \end{code}
 Here we realized the machine types as the corresponding types in Agda. The
 exception is the type of functions, which we realize as a closure. The meaning
@@ -1172,8 +1172,8 @@ of \D{Closure} will be defined at a later moment.
 We proceed by giving semantics to the environment,
 \begin{code}
   ⟦_⟧ᵉ : Env → Set
-  ⟦ [] ⟧ᵉ     = ⊤
-  ⟦ x ∷ xs ⟧ᵉ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
+  ⟦ [] ⟧ᵉ      = ⊤
+  ⟦ x ∷ xs ⟧ᵉ  = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 \end{code}
 The semantics of environment are fairly straightforward, we make a reference to
 the semantic function for types and inductively define the environment as a
@@ -1182,12 +1182,12 @@ product of semantics of each type in it.
 Next, we define the semantics of the function dump,
 \begin{code}
   ⟦_⟧ᵈ : FunDump → Set
-  ⟦ [] ⟧ᵈ              = ⊤
-  ⟦ intT ∷ xs ⟧ᵈ       = ⊥
-  ⟦ boolT ∷ xs ⟧ᵈ      = ⊥
-  ⟦ pairT x x₁ ∷ xs ⟧ᵈ = ⊥
-  ⟦ a ⇒ b ∷ xs ⟧ᵈ      = Closure a b × ⟦ xs ⟧ᵈ
-  ⟦ listT x ∷ xs ⟧ᵈ    = ⊥
+  ⟦ [] ⟧ᵈ               = ⊤
+  ⟦ intT ∷ xs ⟧ᵈ        = ⊥
+  ⟦ boolT ∷ xs ⟧ᵈ       = ⊥
+  ⟦ pairT x x₁ ∷ xs ⟧ᵈ  = ⊥
+  ⟦ a ⇒ b ∷ xs ⟧ᵈ       = Closure a b × ⟦ xs ⟧ᵈ
+  ⟦ listT x ∷ xs ⟧ᵈ     = ⊥
 \end{code}
 Since the type of the function dump technically permits also non-function types
 in it, we have to handle them here by simply saying that they may not be
@@ -1203,12 +1203,12 @@ called recursively from this closure.
     inductive
     constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
     field
-      {e} : Env
-      {f} : FunDump
-      ⟦c⟧ᶜ : ⊢ [] # (a ∷ e) # (a ⇒ b ∷ f)
-             ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
-      ⟦e⟧ᵉ : ⟦ e ⟧ᵉ
-      ⟦f⟧ᵈ : ⟦ f ⟧ᵈ
+      {e}   : Env
+      {f}   : FunDump
+      ⟦c⟧ᶜ  : ⊢ [] # (a ∷ e) # (a ⇒ b ∷ f)
+              ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
+      ⟦e⟧ᵉ  : ⟦ e ⟧ᵉ
+      ⟦f⟧ᵈ  : ⟦ f ⟧ᵈ
 \end{code}
 This concludes the mutual block of definitions.
 
@@ -1216,8 +1216,8 @@ There is one more type we have not handled yet, \D{Stack}, which is not required
 to be in the mutual block above,
 \begin{code}
 ⟦_⟧ˢ : Stack → Set
-⟦ [] ⟧ˢ     = ⊤
-⟦ x ∷ xs ⟧ˢ = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
+⟦ [] ⟧ˢ      = ⊤
+⟦ x ∷ xs ⟧ˢ  = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
 \end{code}
 The stack is realized similarly to the environment, however the environment is
 referenced in the definition of \D{Closure}, making it necessary for it to be in
@@ -1231,8 +1231,8 @@ function dump.
 As for the environment, the situation is fairly simple,
 \begin{code}
 lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
-lookupᵉ (x , _) here       = x
-lookupᵉ (_ , xs) (there w) = lookupᵉ xs w
+lookupᵉ (x , _) here        = x
+lookupᵉ (_ , xs) (there w)  = lookupᵉ xs w
 \end{code}
 Looking up values from the function dump is slightly more involved, because Agda
 doesn't let us pattern-match on the first argument as we did here. Instead, we
@@ -1253,8 +1253,8 @@ dump and drop the first element.
 Now we can define the lookup operation for the function dump,
 \begin{code}
 lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
-lookupᵈ (x , _) here = x
-lookupᵈ f (there w)  = lookupᵈ (tailᵈ f) w
+lookupᵈ (x , _) here  = x
+lookupᵈ f (there w)   = lookupᵈ (tailᵈ f) w
 \end{code}
 dropping the elements as necessary with \F{tailᵈ} until we get to the desired
 closure.
@@ -1318,8 +1318,8 @@ auxiliary function \F{lookupᵉ} and puts it on the stack.
 \begin{code}
 run s e d (ldc const >> r) = run (makeConst const , s) e d r
   where makeConst : (c : Const) → ⟦ typeof c ⟧ᵗ
-        makeConst (bool x) = x
-        makeConst (int x) = x
+        makeConst (bool x)  = x
+        makeConst (int x)   = x
 \end{code}
 In order to load a constant we introduce an auxiliary conversion function for
 converting from an embedded constant to a semantical value. The constant is then
@@ -1399,8 +1399,8 @@ run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
 The \I{if} instruction follows,
 \begin{code}
 run (test , s) e d (if c₁ c₂ >> r) with test
-… | tt = later λ where .force → run s e d (c₁ >+> r)
-… | ff = later λ where .force → run s e d (c₂ >+> r)
+… | tt  = later λ where .force → run s e d (c₁ >+> r)
+… | ff  = later λ where .force → run s e d (c₂ >+> r)
 \end{code}
 This instruction examines the boolean value on top of the stack and prepends the
 correct branch to \A{r}.
@@ -1495,9 +1495,9 @@ recursively.
 \begin{code}
 infix 2 _×_⊢_
 data _×_⊢_ : Ctx → Ctx → Type → Set where
-  var : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
-  ƛ_  : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
-  _$_ : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
+  var  : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
+  ƛ_   : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
+  _$_  : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
 \end{code}
 The first three typing rules resemble closely the ones from \ref{lambda_syntax},
 with the addition of the function context \A{Ψ}.
@@ -1515,13 +1515,15 @@ We also have an if-then-else construct and a polymorphic comparison operator,
 \end{code}
 Finally, we have the integers and some primitive operations on them,
 \begin{code}
-  #_ : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
-  mul : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
-  sub : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT ⇒ intT ⇒ intT
+  #_   : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
+  _∗_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
+  _–_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
 
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
+infixl 10 _*_
+infixl 5 _–_
 
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
 #⁺ n = # (+ n)
@@ -1531,8 +1533,7 @@ As an example, consider the factorial function in this formalism,
 fac : [] × [] ⊢ (intT ⇒ intT)
 fac = ƛ if (var 𝟎 == #⁺ 1)
           then #⁺ 1
-          else (mul $ (rec 𝟎 $ (sub $ var 𝟎 $ #⁺ 1))
-                    $ var 𝟎)
+          else (var 𝟎 ∗ (rec 𝟎 $ (var 𝟎 – #⁺ 1)))
 \end{code}
 \subsection{Compilation}
 For the compilation, we use a scheme of two mutually recursive functions
@@ -1560,15 +1561,31 @@ mutual
     compile t >+> if (compile a) (compile b) >> ∅
   compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
   compile (# x)                = ldc (int x) >> ∅
-  compile mul                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| mul) >| rtn) >> ∅
-  compile sub                  = ldf (ldf (ld 𝟎 >> ld 𝟏 >| sub) >| rtn) >> ∅
+  compile (a ∗ b)              = compile b >+> compile a >+> mul >> ∅
+  compile (a – b)              = compile b >+> compile a >+> sub >> ∅
 \end{code}
-
+We can now compile the above definition of \F{fac}. Below is the result,
+adjusted for readability.
+\begin{code}
+_ : compile {s = []} fac ≡ ldf (
+     ldc (int (+ 1)) >> ld here >> eq?
+  >| if (ldc (int (+ 1)) >| rtn) (
+           ld here
+        >> ldr here
+        >> ldc (int (+ 1))
+        >> ld here
+        >> sub
+        >> ap
+        >> mul
+        >| rtn)
+  ) >> ∅
+_ = refl
+\end{code}
 
 As a final test, we can apply the function \F{fac} to the number 5, compile the
 expression, and evaluate it on the SECD,
 \begin{code}
-_ : runℕ (compile (fac $ #⁺ 5)) 27 ≡ just (+ 120)
+_ : runℕ (compile (fac $ #⁺ 5)) 10 ≡ just (+ 120)
 _ = refl
 \end{code}
 
