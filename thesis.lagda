@@ -555,57 +555,144 @@ see whether the terms we defined above receive the expected semantics.
 Since this thesis can only be rendered if all the Agda code has successfully
 type-checked, the fact that the reader is currently reading this paragraph means
 the semantics function as expected!
+
 \section{Coinduction}
-
 \label{coinduction}
-\parencite{coinduction}
+Total languages, such as Agda, are sometimes wrongfully accused of lacking
+Turing-completeness. In reality, there are ways to model possibly
+non-terminating programs -- given some time limit for their execution. One such
+way is to introduce a monad which captures the concept of a recursive
+call\parencite{mcbride2015turing}.
 
+In this section we introduce the concept of coinduction on the example of
+streams and then proceed to define a monad which will be used later on in
+chapter 5 to give semantics to the execution of SECD machine code.
+
+For a more in-depth overview of coinduction in Agda and specifically the
+aforementioned monad, please refer to \parencite{coinduction}.
+
+The concepts presented can be made specific in category theory, where given a
+functor $F$ we can speak of $F-$coalgebras. Coinduction, then, is a way of
+proving properties of such systems. Morally, the distinction between induction
+and coinduction is that induction proceeds by breaking down a problem into some
+base case, whereas coinduction starts with a base case and iteratively extends
+to subsequent steps.
+
+Well-known examples of $F-$coalgebras include streams and transition systems.
+The moral distinction here is that while elements of algebraic structures, or
+data, are constructed, elements of coalgebraic structures, or codata, are
+observed.
+
+For a more in-depth introduction to coalgebra, please see
+\parencite{jacobs_2016}.
+
+\subsection{Streams}
+Streams are infinite lists. For example, consider the succession of all natural
+numbers: it is clearly infinite. In some functional languages, such as Haskell,
+this can be expressed as a lazily constructed list. Agda, however, being total,
+does not allow for such a construction directly: an infinite data structure is
+clearly not inductively construable. It is, however, observable: as with a
+regular list, we can peek at it's head \AgdaField{hd}, and we can drop the head
+and look at the tail \AgdaField{tl} of the stream.
+
+To capture this in Agda, we define a record with these projections and mark it
+as \AgdaKeyword{coinductive},
 \begin{code}[hide]
 open import Size
 open import Data.Maybe using (Maybe; just; nothing)
 \end{code}
 \begin{code}
-mutual
-  data Stream (A : Set) (i : Size) : Set where
-    []ˢ   : Stream A i
-    _∷ˢ_  : A → ∞Stream A i → Stream A i
-
-  record ∞Stream (A : Set) (i : Size) : Set where
-    coinductive
-    field
-      force : {j : Size< i} → Stream A j
-open ∞Stream public
+record Stream (A : Set) : Set where
+  coinductive
+  field
+    hd  : A
+    tl  : Stream A
 \end{code}
 \begin{code}[hide]
+open Stream
 module HiddenX where
   open import Data.Nat using (⌊_/2⌋; _+_; _*_)
-
-  takeˢ : ∀ {A} → ℕ → Stream A ∞ → List A
-  takeˢ zero xs           = []
-  takeˢ (suc n) []ˢ       = []
-  takeˢ (suc n) (x ∷ˢ xs) = x ∷ takeˢ n (force xs)
-
+  open import Data.Sum using (inj₁; inj₂) renaming (_⊎_ to _∨_)
+  open import Data.Product using (Σ) renaming (_,_ to _⹁_)
   even? : ℕ → Bool
-  even? zero          = tt
-  even? (suc zero)    = ff
-  even? (suc (suc n)) = even? n
+  even? zero           = tt
+  even? (suc zero)     = ff
+  even? (suc (suc n))  = even? n
+
+  mapˢ : ∀ {A B} → (A → B) → Stream A → Stream B
+  hd (mapˢ f as) = f (hd as)
+  tl (mapˢ f as) = mapˢ f (tl as)
+
+  atˢ : ∀ {A} → ℕ → Stream A → A
+  atˢ zero xs = hd xs
+  atˢ (suc n) xs = atˢ n (tl xs)
 \end{code}
+As an example, consider the aforementioned stream of natural numbers, starting
+from some \A{n},
+\begin{code}
+  nats : ℕ → Stream ℕ
+  hd (nats n)  = n
+  tl (nats n)  = nats (n + 1)
+\end{code}
+Here we employ a feature of Agda called coppaterns. Recall that we are
+constructing a record: the above syntax says how the individual projections are
+to be realized. Note also that the argument to \F{nats} is allowed to be
+structurally increased before the recursive call, something that would be
+forbidden in an inductive definition.
+
+Given such a stream, we may wish to observe it by peeking forward a finite
+number of times, thus producing a \D{List},
+\begin{code}
+  takeˢ : ∀ {A} → ℕ → Stream A → List A
+  takeˢ zero xs     = []
+  takeˢ (suc n) xs  = hd xs ∷ takeˢ n (tl xs)
+\end{code}
+Now we can convince ourselves that the above implementation of \F{nats} is,
+indeed, correct,
+\begin{code}
+  _ : takeˢ 7 (nats 0) ≡ 0 ∷ 1 ∷ 2 ∷ 3 ∷ 4 ∷ 5 ∷ 6 ∷ []
+  _ = refl
+\end{code}
+For a more interesting example of a stream, consider the Hailstone sequence,
+with a slight modification to the single step function, given as below:
 \begin{code}
   step : ℕ → ℕ
+  step 1 = 0
   step n with even? n
   … | tt  = ⌊ n /2⌋
   … | ff  = 3 * n + 1
-
-  collatz : ℕ → Stream ℕ ∞
-  collatz 1  = 1 ∷ˢ λ where .force → []ˢ
-  collatz n  = n ∷ˢ λ where .force → collatz (step n)
-  \end{code}
-  \begin{code}
-  _ : takeˢ 10 (collatz 12)
-      ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ []
+\end{code}
+The sequence itself, then, can be given by the following definition,
+\begin{code}
+  collatz : ℕ → Stream ℕ
+  hd (collatz n)  = n
+  tl (collatz n)  = collatz (step n)
+\end{code}
+For example, observe the sequence starting from the number $12$,
+\begin{code}
+  _ : takeˢ 11 (collatz 12)
+      ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ 0 ∷ []
   _ = refl
 \end{code}
+Using a dependent product, we can express the predicate that a stream will
+eventually reach some value,
+\begin{code}
+  Reaches : ∀ {A} → Stream A → A → Set
+  Reaches xs a = Σ ℕ (λ n → atˢ n xs ≡ a)
+\end{code}
+Hence, the Collatz conjecture can be stated as follows:
+\begin{code}
+  conjecture : ∀ n → Reaches (collatz n) 0
+  conjecture n = ?
+\end{code}
+The proof is left as a challenge to the reader.
 \subsection{The Delay Monad}
+The Delay monad captures the concept of unbounded recursive calls. There are two
+ways to construct a value of this type: \I{now}, which says that execution has
+terminated and the result is available, and \I{later}, which means the result is
+delayed by some indirection and \textit{might} be available later. In Agda, we
+define this as a mutual definition of an inductive and coinductive data-type as
+follows,
 \label{delay_monad}
 \begin{code}
 mutual
@@ -617,12 +704,25 @@ mutual
     coinductive
     field
       force : {j : Size< i} → Delay A j
+\end{code}
+Here we also introduce the type \D{Size} which serves as a measure on the size
+of the delay. Note that the field \AgdaField{force} requires this to strictly
+decrease. This measure aids the Agda type-checker in verifying that a definition
+is \textit{productive}, that is, some progress towards the result is made in
+each iteration of \AgdaField{force}.
+
+For any data-type we may define an infinitely delayed value,
+\begin{code}[hide]
 open ∞Delay public
 \end{code}
 \begin{code}
-never : ∀ {A} → Delay A ∞
-never = later λ where .force → never
+never : ∀ {A i} → Delay A i
+never {i} = later λ where .force {j} → never {j}
 \end{code}
+This can be used to signal an error in execution has occurred. The implicit size
+argument has been written explicitly for the reader's sake.
+
+Given a delayed value, we can attempt to retrieve it in a finite number of steps,
 \begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
 runFor zero (now x)       = just x
@@ -630,11 +730,18 @@ runFor zero (later _)     = nothing
 runFor (suc _) (now x)    = just x
 runFor (suc n) (later x)  = runFor n (force x)
 \end{code}
+This idiom is useful for executing some computation which though may not
+terminate, it periodically offers it's environment the chance to interrupt the
+computation, or proceed further on.
+
+\D{Delay} is also a monad, with the unit operator being \I{now} and bind given
+below,
 \begin{code}
 _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
 now x >>= f    = f x
 later x >>= f  = later λ where .force → (force x) >>= f
 \end{code}
+This allows us to chain delayed computations.
 \begin{code}[hide]
 open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}
@@ -1522,7 +1629,7 @@ Finally, we have the integers and some primitive operations on them,
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
-infixl 10 _*_
+infixl 10 _∗_
 infixl 5 _–_
 
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
@@ -1567,19 +1674,19 @@ mutual
 We can now compile the above definition of \F{fac}. Below is the result,
 adjusted for readability.
 \begin{code}
-_ : compile {s = []} fac ≡ ldf (
-     ldc (int (+ 1)) >> ld here >> eq?
-  >| if (ldc (int (+ 1)) >| rtn) (
-           ld here
-        >> ldr here
-        >> ldc (int (+ 1))
-        >> ld here
-        >> sub
-        >> ap
-        >> mul
-        >| rtn)
-  ) >> ∅
-_ = refl
+--_ : compile {s = []} fac ≡ ldf (
+--     ldc (int (+ 1)) >> ld here >> eq?
+--  >| if (ldc (int (+ 1)) >| rtn) (
+--           ld here
+--        >> ldr here
+--        >> ldc (int (+ 1))
+--        >> ld here
+--        >> sub
+--        >> ap
+--        >> mul
+--        >| rtn)
+--  ) >> ∅
+--_ = refl
 \end{code}
 
 As a final test, we can apply the function \F{fac} to the number 5, compile the
