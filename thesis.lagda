@@ -206,6 +206,8 @@ record _×_ (A : Set) (B : Set) : Set where
   field
     proj₁ : A
     proj₂ : B
+\end{code}
+\begin{code}[hide]
 infixr 4 _,_
 \end{code}
 Here we declared a new record type, parametrized by two other types,
@@ -402,6 +404,8 @@ express list membership as a new data type,
 data _∈_ {A : Set} : A → List A → Set where
   here   : ∀ {x xs} → x ∈ (x ∷ xs)
   there  : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+\end{code}
+\begin{code}[hide]
 infix 10 _∈_
 \end{code}
 The first constructor says that an element is present in a list if that element
@@ -442,6 +446,8 @@ module Hidden3 where
   data ★ : Set where
     ι    : ★
     _⇒_  : ★ → ★ → ★
+\end{code}
+\begin{code}[hide]
   infixr 20 _⇒_
 \end{code}
 Here we defined some atomic type \I{ι} and a binary type constructor for
@@ -457,6 +463,8 @@ using De Bruijn indices as explained above.
     var  : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
     ƛ_   : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
     _$_  : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
+\end{code}
+\begin{code}[hide]
   infix 4 _⊢_
   infixr 5 ƛ_
   infixl 10 _$_
@@ -683,7 +691,7 @@ eventually reach some value,
 Hence, the Collatz conjecture can be stated as follows:
 \begin{code}
   conjecture : ∀ n → Reaches (collatz n) 0
-  conjecture n = ?
+  conjecture n = {!!}
 \end{code}
 The proof is left as a challenge to the reader.
 \subsection{The Delay Monad}
@@ -716,7 +724,7 @@ For any data-type we may define an infinitely delayed value,
 open ∞Delay public
 \end{code}
 \begin{code}
-never : ∀ {A i} → Delay A i
+never : ∀ {i A} → Delay A i
 never {i} = later λ where .force {j} → never {j}
 \end{code}
 This can be used to signal an error in execution has occurred. The implicit size
@@ -893,6 +901,8 @@ with the next.
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
   ∅     : ∀ {a} → Path R a a
   _>>_  : ∀ {a b c} → R a b → Path R b c → Path R a c
+\end{code}
+\begin{code}[hide]
 infixr 5 _>>_
 \end{code}
 The first constructor creates an empty path. The second takes an
@@ -917,6 +927,8 @@ path connects to the start of the second one.
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 ∅        >+> r  = r
 (x >> l) >+> r  = x >> (l >+> r)
+\end{code}
+\begin{code}[hide]
 infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
@@ -935,6 +947,8 @@ data Type : Set where
   pairT       : Type → Type → Type
   listT       : Type → Type
   _⇒_         : Type → Type → Type
+\end{code}
+\begin{code}[hide]
 infixr 15 _⇒_
 \end{code}
 Firstly, there are types corresponding to the constants we have already defined
@@ -1599,8 +1613,10 @@ As for the typing relation, we use a similar trick as with SECD to allow
 recursive calls. We keep two contexts, \A{Γ} for tracking assumptions, as in
 \ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
 recursively.
-\begin{code}
+\begin{code}[hide]
 infix 2 _×_⊢_
+\end{code}
+\begin{code}
 data _×_⊢_ : Ctx → Ctx → Type → Set where
   var  : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
   ƛ_   : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
@@ -1625,7 +1641,8 @@ Finally, we have the integers and some primitive operations on them,
   #_   : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
   _∗_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
   _–_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
-
+\end{code}
+\begin{code}[hide]
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
@@ -1635,6 +1652,8 @@ infixl 5 _–_
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
 #⁺ n = # (+ n)
 \end{code}
+We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals.
+
 As an example, consider the factorial function in this formalism,
 \begin{code}
 fac : [] × [] ⊢ (intT ⇒ intT)
@@ -1674,19 +1693,19 @@ mutual
 We can now compile the above definition of \F{fac}. Below is the result,
 adjusted for readability.
 \begin{code}
---_ : compile {s = []} fac ≡ ldf (
---     ldc (int (+ 1)) >> ld here >> eq?
---  >| if (ldc (int (+ 1)) >| rtn) (
---           ld here
---        >> ldr here
---        >> ldc (int (+ 1))
---        >> ld here
---        >> sub
---        >> ap
---        >> mul
---        >| rtn)
---  ) >> ∅
---_ = refl
+_ : compile {s = []} fac ≡ ldf (
+     ldc (int (+ 1)) >> ld here >> eq?
+  >| if (ldc (int (+ 1)) >| rtn) (
+           ldr here
+        >> ldc (int (+ 1))
+        >> ld here
+        >> sub
+        >> ap
+        >> ld here
+        >> mul
+        >| rtn)
+  ) >> ∅
+_ = refl
 \end{code}
 
 As a final test, we can apply the function \F{fac} to the number 5, compile the
