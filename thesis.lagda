@@ -22,6 +22,7 @@
 %%\usepackage{unicode-math}
 %%\usepackage{xunicode}
 \usepackage[main=english]{babel}
+\usepackage{csquotes}
 
 \thesissetup{
     date          = \the\year/\the\month/\the\day,
@@ -92,12 +93,52 @@
 \chapter{Introduction}
 
 \chapter{Intuitionistic logic}
-\begin{chapquote}{R. Feynman}
+\begin{chapquote}{Richard Feynman}
   What I cannot create, I do not understand.
 \end{chapquote}
-\section{History}
-\section{Curry-Howard correspondence}
+Intuitionistic logic\parencite{brouwer1907foundations, brouwer1908unreliability}
+is a logic which, unlike most of current mathematics, only allows for
+constructive arguments. In practice, the main difference is that proof by
+contradiction is not allowed: in order to show that something is the case, it is
+not enough to show that the opposite is not the case. In theory, this is
+achieved by disallowing the law of the excluded middle (LEM), which states that
+for any proposition $P$, $P$ either does or does not hold: $∀P → P ∨ ¬P$.
+Certain other well-known tautologies, such as double negation elimination, are
+equivalent to this principle. It is also the case that the axiom of choice, as
+formulated in set theory, implies the law of the excluded middle, a result by
+Diaconescu\parencite{diaconescu1975axiom}.
 
+Intuitionistic logic began as an attempt by Brouwer to develop a base for all
+mathematics that would more closely follow the intuitions of the human mind.
+Futhermore, the Stanford Encyclopedia of Philosophy's entry on
+Intuitionism\parencite{sep-logic-intuitionistic} states,
+
+\begin{displayquote}
+  (…) to Brouwer the general LEM was equivalent to the a priori assumption that
+  every mathematical problem has a solution -— an assumption he rejected,
+  anticipating Gödel’s incompleteness theorem by a quarter of a century.
+\end{displayquote}
+
+In practice, there are considerations with regards to constructive approaches
+other than a purely philosophical one. Under the standard
+Brouwer-Heyting-Kolmogorov interpretation of intuitionistic
+logic\parencite{troelstra2011history}, working in this setting means that every
+proposition proven amounts to a recipe, an algorithm, on how to transform the
+assumptions, or inputs, into the result, or output. For this reason,
+intuitionistic logic should be of high interest especially for computer scientists.
+
+As an instructive example, consider the normalization of terms in some theory.
+It has been discovered that if one can establish soundness and completeness of
+this theory with regard to some suitable semantics, this naturally gives rise to
+a normalizer for this theory \parencite{coquand2002formalised}, merely by way of
+reflecting the term into the semantical structure (soundness), and reifying from
+the semantical structure back into syntax (completeness). This approach to
+normalization is commonly referred to as normalization by evaluation and has
+been used as early as 1975 by Martin-Löf in order to establish decidability of
+type-checking for a dependent type theory\parencite{martin1975intuitionistic},
+albeit not under the moniker of normalization by evaluation
+\parencite{abel2013normalization}.
+\section{Curry-Howard correspondence}
 \chapter{Agda}
 \begin{chapquote}{From the topic of the official Agda IRC channel}
   Agda: is it a dependently-typed programming language? Is it a proof-assistant
@@ -730,8 +771,8 @@ never {i} = later λ where .force {j} → never {j}
 This can be used to signal an error in execution has occurred. The implicit size
 argument has been written explicitly for the reader's sake.
 
-Here we also see for the first time the syntax for anonymous records constructed
-by copatterns. The above is synonymous with
+Here we also see for the first time the anonymous syntax for constructing
+records by copatterns. The above is synonymous with
 \begin{code}
 mutual
   never' : ∀ {i A} → Delay A i
