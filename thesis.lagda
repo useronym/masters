@@ -444,7 +444,7 @@ module Hidden3 where
 \end{code}
 \begin{code}
   data ★ : Set where
-    ι    : ★
+    τ    : ★
     _⇒_  : ★ → ★ → ★
 \end{code}
 \begin{code}[hide]
@@ -476,8 +476,8 @@ concept of λ-abstraction, and the last rule is function application.
 
 We can see some examples now,
 \begin{code}
-  I : ∀ {Γ α} → Γ ⊢ α ⇒ α
-  I = ƛ (var 𝟎)
+  K : ∀ {Γ α β} → Γ ⊢ α ⇒ β ⇒ α
+  K = ƛ ƛ (var 𝟏)
 
   S : ∀ {Γ α β γ} → Γ ⊢ (α ⇒ β ⇒ γ) ⇒ (α ⇒ β) ⇒ α ⇒ γ
   S = ƛ ƛ ƛ var 𝟐 $ var 𝟎 $ (var 𝟏 $ var 𝟎)
@@ -498,7 +498,7 @@ Agda.
 First, we define the semantics of types, by assigning Agda types to types in our calculus.
 \begin{code}
   ⟦_⟧★ : ★ → Set
-  ⟦ ι ⟧★      = ℕ
+  ⟦ τ ⟧★      = ℕ
   ⟦ α ⇒ β ⟧★  = ⟦ α ⟧★ → ⟦ β ⟧★
 \end{code}
 Here we choose to realize our atomic type as the type of Natural numbers. These
@@ -548,10 +548,10 @@ semantics in the current context.
 Thanks to propositional equality, we can embed tests directly into Agda code and
 see whether the terms we defined above receive the expected semantics.
 \begin{code}
-  Iℕ : ℕ → ℕ
-  Iℕ x = x
+  Kℕ : ℕ → ℕ → ℕ
+  Kℕ x _ = x
 
-  _ : ⟦ I ⟧ ⋅ ≡ Iℕ
+  _ : ⟦ K ⟧ ⋅ ≡ Kℕ
   _ = refl
 
   Sℕ : (ℕ → ℕ → ℕ) → (ℕ → ℕ) → ℕ → ℕ
@@ -716,8 +716,8 @@ mutual
 Here we also introduce the type \D{Size} which serves as a measure on the size
 of the delay. Note that the field \AgdaField{force} requires this to strictly
 decrease. This measure aids the Agda type-checker in verifying that a definition
-is \textit{productive}, that is, some progress towards the result is made in
-each iteration of \AgdaField{force}.
+is \textit{productive}, that is, some progress towards is made in each iteration
+of \AgdaField{force}.
 
 For any data-type we may define an infinitely delayed value,
 \begin{code}[hide]
@@ -730,6 +730,19 @@ never {i} = later λ where .force {j} → never {j}
 This can be used to signal an error in execution has occurred. The implicit size
 argument has been written explicitly for the reader's sake.
 
+Here we also see for the first time the syntax for anonymous records constructed
+by copatterns. The above is synonymous with
+\begin{code}
+mutual
+  never' : ∀ {i A} → Delay A i
+  never' = later ∞never'
+
+  ∞never' : ∀ {i A} → ∞Delay A i
+  force ∞never' = never'
+\end{code}
+In other words, anonymous records allow us to succintly construct codata by use
+of copatterns, without the need of writing unwieldy mutual blocks.
+
 Given a delayed value, we can attempt to retrieve it in a finite number of steps,
 \begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
@@ -738,9 +751,8 @@ runFor zero (later _)     = nothing
 runFor (suc _) (now x)    = just x
 runFor (suc n) (later x)  = runFor n (force x)
 \end{code}
-This idiom is useful for executing some computation which though may not
-terminate, it periodically offers it's environment the chance to interrupt the
-computation, or proceed further on.
+This idiom is useful for executing some computation which periodically offers
+it's environment the chance to interrupt the computation, or proceed further on.
 
 \D{Delay} is also a monad, with the unit operator being \I{now} and bind given
 below,
