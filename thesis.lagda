@@ -39,10 +39,14 @@
     abstract      = {This is the abstract of my thesis, which can
 
                      span multiple paragraphs.},
-    thanks        = {These are the acknowledgements for my thesis, which can
+    thanks        = {I would like to thank my friends and family for supporting
+      me throughout this work.
 
-                     span multiple paragraphs.},
-    bib           = bibliography.bib
+      I would also like to thank many users of the Freenode IRC network for
+      helpful discussions regarding the topics of this thesis. This list
+      includes, but is not limited to, Guillaume Allais, Miëtek Bak, Paolo G.
+      Giarrusso.},
+    bib = bibliography.bib
 }
 
 %% \usepackage{makeidx}      %% The `makeidx` package contains
@@ -92,10 +96,19 @@
 \begin{document}
 \chapter{Introduction}
 
-\chapter{Intuitionistic logic}
+\chapter{Logic, Constructivism, Type Theory}
 \begin{chapquote}{Richard Feynman}
   What I cannot create, I do not understand.
 \end{chapquote}
+This chapter presents a quick overview of several rather complex areas. The
+information here presented should be sufficient for understanding the rest of
+this thesis.
+
+Some previous knowledge of mathematical logic and computability theory would be
+helpful in order for the reader to be able to appreciate all of the below
+content, however it is not assumed.
+
+\section{Intuitionistic logic}
 Intuitionistic logic\parencite{brouwer1907foundations, brouwer1908unreliability}
 is a logic which, unlike most of current mathematics, only allows for
 constructive arguments. In practice, the main difference is that proof by
@@ -125,7 +138,7 @@ Brouwer-Heyting-Kolmogorov interpretation of intuitionistic
 logic\parencite{troelstra2011history}, working in this setting means that every
 proposition proven amounts to a recipe, an algorithm, on how to transform the
 assumptions, or inputs, into the result, or output. For this reason,
-intuitionistic logic should be of high interest especially for computer scientists.
+intuitionistic logic should be of high interest especially to computer scientists.
 
 As an instructive example, consider the normalization of terms in some theory.
 It has been discovered that if one can establish soundness and completeness of
@@ -138,7 +151,59 @@ been used as early as 1975 by Martin-Löf in order to establish decidability of
 type-checking for a dependent type theory\parencite{martin1975intuitionistic},
 albeit not under the moniker of normalization by evaluation
 \parencite{abel2013normalization}.
-\section{Curry-Howard correspondence}
+
+\section{Type Theory}
+Type theory was first introduced by Whitehead and Russell in 1910 in their
+transformational work Principia Mathematica\parencite{whitehead1912principia} as
+a response to Russell's discovery of inconsistency of naïve set
+theory\parencite{frege1982philosophical} in 1901. In type theory, every
+expression has an associated type, thus allowing syntactical restrictions to be
+put on which propositions can be formulated. Contrast this with set theory,
+where propositions such as $2 ∈ 3$ can be formulated\footnote{The above being,
+  in fact, true, as per the standard construction of natural numbers in set theory
+  due to von Neumann\parencite{von1923introduction}.}.
+
+The next breakthrough in type theory was the formulation of the Simply Typed λ
+Calculus\parencite{church1940formulation} by Church in 1940. This, too, came as a way to
+avoid paradoxes present in the Untyped λ Calculus\parencite{church1932set},
+which was found to be inconsistent by Kleene and
+Rosser\parencite{kleene1935inconsistency}. The Untyped λ calculus was introduced
+as a universal model of computation, a point at which it succeeded, as it is
+equivalent in strength to a Turing machine\parencite{turing1937computability}.
+\subsection{Curry-Howard Correspondence}
+It was later observed by Howard that the Simply Typed λ Calculus (STLC) could be
+viewed as a language for construction of proofs in Natural
+Deduction\parencite{howard1980formulae} (ND), an intuitionistic proof calculus
+introduced originally by Gentzen in 1934\parencite{gentzen1935untersuchungen} as
+an attempt at a more natural language for logic. This correspondence simply
+states that \textit{propositions} of ND are isomorphic with \textit{types} in
+STLC, \textit{proofs} of ND with \textit{terms} (or programs) of STLC, and
+\textit{normalization} of proofs in ND with \textit{conversion into normal form}
+of terms of STLC.
+
+This leads to the realization that we can prove theorems by writing computer
+programs and have them verified by a type-checker. However, in order to be able
+to express more interesting properties, we need a type system stronger than the
+Simply Typed λ Calculus.
+\subsection{Dependent Types}
+In order to extend the expressivity to non-trivial propositions, dependent types
+were proposed first by de Bruijn\parencite{de1967description} in 1967 in his project
+Automath, aiming at creating a language for encoding computer-verified
+mathematics. Later, in 1972, Martin-Löf founded the field of intuitionistic type
+theory\parencite{martin1975intuitionistic}.
+
+Dependent types are types which can depend on values. They correspond with
+quantifiers from predicate logic, thus allowing one to naturally express more
+involved propositions.
+
+The type that corresponds to universal quantification $∀$ is the type of
+dependent functions $(a : A) → B a$, where the type of $B$ can depend on the
+value $a$. For example, consider the type of vectors of natural numbers $ℕ$,
+which can be stated as $Π(n:ℕ) → Vec(n)$, where $Vec(a)$ is the type of vectors
+of length exactly $a$.
+
+Corresponding with existential quantification $∃$ is the type of dependent
+products $Σ (a:A) (B a)$.
 \chapter{Agda}
 \begin{chapquote}{From the topic of the official Agda IRC channel}
   Agda: is it a dependently-typed programming language? Is it a proof-assistant
@@ -617,7 +682,7 @@ In this section we introduce the concept of coinduction on the example of
 streams and then proceed to define a monad which will be used later on in
 chapter 5 to give semantics to the execution of SECD machine code.
 
-For a more in-depth overview of coinduction in Agda and specifically the
+For a more in-depth overview of coinduction in Agda and especially the
 aforementioned monad, please refer to \parencite{coinduction}.
 
 The concepts presented can be made specific in category theory, where given a
@@ -683,10 +748,10 @@ from some \A{n},
   hd (nats n)  = n
   tl (nats n)  = nats (n + 1)
 \end{code}
-Here we employ a feature of Agda called coppaterns. Recall that we are
-constructing a record: the above syntax says how the individual projections are
+Here we employ a feature of Agda called copatterns. Recall that we are
+constructing a record: the above syntax says how the individual fields are
 to be realized. Note also that the argument to \F{nats} is allowed to be
-structurally increased before the recursive call, something that would be
+structurally enlarged before the recursive call, something that would be
 forbidden in an inductive definition.
 
 Given such a stream, we may wish to observe it by peeking forward a finite
@@ -757,7 +822,7 @@ mutual
 Here we also introduce the type \D{Size} which serves as a measure on the size
 of the delay. Note that the field \AgdaField{force} requires this to strictly
 decrease. This measure aids the Agda type-checker in verifying that a definition
-is \textit{productive}, that is, some progress towards is made in each iteration
+is \textit{productive}, that is, some progress is made in each iteration
 of \AgdaField{force}.
 
 For any data-type we may define an infinitely delayed value,
@@ -802,7 +867,8 @@ _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
 now x >>= f    = f x
 later x >>= f  = later λ where .force → (force x) >>= f
 \end{code}
-This allows us to chain delayed computations.
+This allows us to chain delayed computations where one depends on the result of
+another.
 \begin{code}[hide]
 open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}
