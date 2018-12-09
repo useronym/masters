@@ -115,11 +115,17 @@ constructive arguments. In practice, the main difference is that proof by
 contradiction is not allowed: in order to show that something is the case, it is
 not enough to show that the opposite is not the case. In theory, this is
 achieved by disallowing the law of the excluded middle (LEM), which states that
-for any proposition $P$, $P$ either does or does not hold: $∀P → P ∨ ¬P$.
-Certain other well-known tautologies, such as double negation elimination, are
-equivalent to this principle. It is also the case that the axiom of choice, as
-formulated in set theory, implies the law of the excluded middle, a result by
-Diaconescu\parencite{diaconescu1975axiom}.
+for any proposition $P$, $P$ either does or does not hold:
+\[
+  ∀P.P ∨ ¬P
+\]
+Certain other well-known tautologies, such as double negation elimination,
+\[
+  ∀P.¬¬P → P
+\]
+are equivalent to this principle. It is also the case that the axiom of
+choice, as formulated in set theory, implies the law of the excluded middle, a
+result by Diaconescu\parencite{diaconescu1975axiom}.
 
 Intuitionistic logic began as an attempt by Brouwer to develop a base for all
 mathematics that would more closely follow the intuitions of the human mind.
@@ -128,7 +134,7 @@ Intuitionism\parencite{sep-logic-intuitionistic} states,
 
 \begin{displayquote}
   (…) to Brouwer the general LEM was equivalent to the a priori assumption that
-  every mathematical problem has a solution -— an assumption he rejected,
+  every mathematical problem has a solution — an assumption he rejected,
   anticipating Gödel’s incompleteness theorem by a quarter of a century.
 \end{displayquote}
 
@@ -163,7 +169,7 @@ where propositions such as $2 ∈ 3$ can be formulated\footnote{The above being,
   in fact, true, as per the standard construction of natural numbers in set theory
   due to von Neumann\parencite{von1923introduction}.}.
 
-The next breakthrough in type theory was the formulation of the Simply Typed λ
+The next breakthrough in type theory was the discovery of the Simply Typed λ
 Calculus\parencite{church1940formulation} by Church in 1940. This, too, came as a way to
 avoid paradoxes present in the Untyped λ Calculus\parencite{church1932set},
 which was found to be inconsistent by Kleene and
@@ -173,7 +179,7 @@ equivalent in strength to a Turing machine\parencite{turing1937computability}.
 \subsection{Curry-Howard Correspondence}
 It was later observed by Howard that the Simply Typed λ Calculus (STLC) could be
 viewed as a language for construction of proofs in Natural
-Deduction\parencite{howard1980formulae} (ND), an intuitionistic proof calculus
+Deduction \parencite{howard1980formulae} (ND), an intuitionistic proof calculus
 introduced originally by Gentzen in 1934\parencite{gentzen1935untersuchungen} as
 an attempt at a more natural language for logic. This correspondence simply
 states that \textit{propositions} of ND are isomorphic with \textit{types} in
@@ -182,28 +188,51 @@ STLC, \textit{proofs} of ND with \textit{terms} (or programs) of STLC, and
 of terms of STLC.
 
 This leads to the realization that we can prove theorems by writing computer
-programs and have them verified by a type-checker. However, in order to be able
-to express more interesting properties, we need a type system stronger than the
-Simply Typed λ Calculus.
+programs, and that subsequently we can have these proofs verified by a
+type-checker. However, in order to be able to express more interesting
+properties, we need a type system stronger than the Simply Typed λ Calculus.
 \subsection{Dependent Types}
 In order to extend the expressivity to non-trivial propositions, dependent types
-were proposed first by de Bruijn\parencite{de1967description} in 1967 in his project
-Automath, aiming at creating a language for encoding computer-verified
-mathematics. Later, in 1972, Martin-Löf founded the field of intuitionistic type
-theory\parencite{martin1975intuitionistic}.
+were proposed first by de Bruijn\parencite{de1967description} in 1967 in his
+project Automath, aiming at creating a language for encoding computer-verified
+mathematics. Later, in 1972, Martin-Löf formulated his intuitionistic type
+theory\parencite{martin1975intuitionistic}, in which dependent types play a
+central role. More recently, starting in the mid 2000's, Voevodsky introduced
+Univalent Foundations\parencite{voevodsky2011univalent}, which aim to give
+practical foundations for modern mathematics in a way that allows for
+computer-verified proofs.
 
 Dependent types are types which can depend on values. They correspond with
 quantifiers from predicate logic, thus allowing one to naturally express more
 involved propositions.
 
 The type that corresponds to universal quantification $∀$ is the type of
-dependent functions $(a : A) → B a$, where the type of $B$ can depend on the
-value $a$. For example, consider the type of vectors of natural numbers $ℕ$,
-which can be stated as $Π(n:ℕ) → Vec(n)$, where $Vec(a)$ is the type of vectors
-of length exactly $a$.
+dependent functions $Π(a : A).B(a)$, where the type of $B$ can depend on the
+value $a$. A proof of such a proposition consists of a function which for any
+value $a$ produces the proof of $B(a)$. For example, consider the statement
+\[
+  Π(n : ℕ).even(n) ∨ odd(n)
+\]
+A proof of this proposition would consist of a decision procedure which for
+any natural number $n$ determines whether $n$ is even or odd.
 
 Corresponding with existential quantification $∃$ is the type of dependent
-products $Σ (a:A) (B a)$.
+products $Σ(a:A).B(a)$. A proof would consist of a pair of some value $a$ of
+type $A$ and a proof of $B(a)$. As an example, consider the statement that there
+exists a prime number,
+\[
+  Σ(n:ℕ).prime(n)
+\]
+One possibility of a proof would be number $1$ and a proof that $1$ is a prime,
+which would hopefully be self-evident.
+
+\subsection{Inhabitance}
+An important concept is that of inhabitance of some type. An inhabited type is a
+type which is non-empty, i.e. there are some values of this type. This is
+synonymous with the proposition this type corresponds to being provable, hence
+the values of some type are sometimes called witnesses to (the provability of)
+this proposition.
+
 \chapter{Agda}
 \begin{chapquote}{From the topic of the official Agda IRC channel}
   Agda: is it a dependently-typed programming language? Is it a proof-assistant
