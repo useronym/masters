@@ -426,8 +426,8 @@ state the proposition that two values of some data type are \textit{equal}. The
 meaning of \textit{equal} here is that both of the values are convertible to the
 same value through reductions. This is the concept of propositional equality.
 Compare this with definitional equality, which only allows us to express when
-two values have the same syntactic representation. For example, definitionaly it
-holds that $2=2$, however, $1+1=2$ only holds propositionaly, because a
+two values have the same syntactic representation. For example, definitionally it
+holds that $2=2$, however $1+1=2$ only holds propositionally, because a
 reduction is required on the left-hand side.
 
 We can define propositional equality in Agda as follows.
@@ -442,10 +442,15 @@ The curly braces denote an implicit argument, i.e. an argument that is to be
 inferred by the type-checker. The equality type is polymorphic in this
 underlying type, \AgdaArgument{A}.
 
-The only way we have to construct values of
-this type is by the constructor \AgdaInductiveConstructor{refl}, which says that
-each value is propositionaly equal to itself. Symmetry and transitivity of
-\AgdaDatatype{\_≡\_} are theorems in Agda.
+The only way we have to construct values of this type is by the constructor
+\AgdaInductiveConstructor{refl}, which says that each value is propositionally
+equal to itself. Propositional equality is thus an internalization of
+definitional equality as a proposition: we say that two values are
+propositionally equal if there is a chain of reductions which lead to
+establishing definitional equality between the two values.
+
+Unlike in axiomatic treatments of equivalence, symmetry and transitivity of
+\AgdaDatatype{\_≡\_} are theorems in Agda:
 \begin{code}
 sym : {A : Set} {a b : A} → a ≡ b → b ≡ a
 sym refl = refl
@@ -453,9 +458,13 @@ sym refl = refl
 trans : {A : Set} {a b c : A} → a ≡ b → b ≡ c → a ≡ c
 trans refl refl = refl
 \end{code}
-By case splitting on the arguments we force Agda to unify the variables \A{a},
-\A{b}, and \A{c}. Afterwards, we can construct the required proof with the
-\I{refl} constructor. This is a feature of the underlying type theory of Agda.
+By pattern-matching on the proofs of equality we force Agda to unify the
+variables \A{a}, \A{b}, and \A{c}. This is possible because there are no other
+conditions on the variables here. In more complex situations, Agda may fail to perform
+unification: in such a case we are required to explicitly de-structure the
+involved terms until unification can succeed. After all the variables are
+unified, we are \textit{de facto} constructing a proof of \A{a} \D{≡} \A{a}, which
+we do with the \I{refl} constructor.
 
 Finally, let us see the promised proof of $1+1=2$,
 \begin{code}[hide]
@@ -473,24 +482,79 @@ would be that of associativity of addition,
   +-assoc {zero}   = refl
   +-assoc {suc a}  = let a+[b+c]≡[a+b]+c = +-assoc {a}
                       in ≡-cong suc a+[b+c]≡[a+b]+c
-    where ≡-cong : {A B : Set} {a b : A} → (f : A → B) → a ≡ b → f a ≡ f b
+    where ≡-cong : {A B : Set} {a b : A}
+                   → (f : A → B) → a ≡ b → f a ≡ f b
           ≡-cong f refl = refl
 \end{code}
-TODO: If this is to be kept here, explain.
+Here we proceed by induction on the variable \A{a}, which is given as an
+implicit argument: hence in the definition we surround the argument by curly
+braces in order to be able to access it. We have no need for the arguments \A{b}
+and \A{c}, and as they are implicit as well, we simply don't write them in the
+left-hand side of the definition.
+
+In the base case when $a = 0$ we are asked to prove that
+\[
+  0+(b+c)≡(0+b)+c.
+\]
+By the definition of addition, the left side simplifies to $b+c$. The right side
+simplifies to $b+c$ as well, therefore we are permitted to close the case by
+\I{refl}.
+
+In the general case we are to prove
+\[
+  suc\ a+(b+c)≡(suc\ a+b)+c.
+\]
+First we observe how this simplifies according to the definition of addition:
+the left side simplifies to $suc\ (a+(b+c))$, whereas the right side first to
+$suc\ (a+b)+c$ and then to $suc\ ((a+b)+c)$. Therefore we are to prove that
+\[
+  suc\ (a+(b+c))≡suc\ ((a+b)+c).
+\]
+To this end we obtain the inductive assumption,
+\[
+  a+(b+c)≡(a+b)+c.
+\]
+Now all we need is to insert the \I{suc} into this assumption, which we do by a
+call to the lemma \F{≡-cong}, which proves that propositional equality is a
+congruence with respect to unary functions, such as \I{suc}.
+
+The reader may also notice the use of the quantifier $∀$ in the type of
+\F{+-assoc}. This is an instruction to Agda to infer the types of the variables
+in the type signature, in this case inferring \A{a}, \A{b}, and \A{c} to be of
+the type \D{ℕ}. It does \textit{not} have the meaning of universal
+quantification, instead all function types are universally quantified
+by default, similarly to e.g. Haskell.
 \section{Decidable Equality}
-A different concept of equality is that of \textit{Decidable equality}. This is
-a form of equality that, unlike Propositional equality, can be decided
-programatically. We define this equality as a restriction of propositional
-equality to those comparisons that are decidable. Firstly, we need the
-definition of a decidable relation.
+A strengthening of the concept of propositional equality is that of
+\textit{decidable equality}. This is a form of equality that, unlike
+Propositional equality, can be decided programatically. We define this equality
+as a restriction of propositional equality to those comparisons that are
+decidable. Firstly, we need the definition of a decidable relation.
 \begin{code}
 data Dec (R : Set) : Set where
   yes  : R → Dec R
   no   : ¬ R → Dec R
 \end{code}
 This data type allows us to embed either a \I{yes} or a \I{no} answer as to
-whether \A{R} is inhabited. Now we can define what it means for a type to
-possess Decidable equality,
+whether \A{R} is inhabited. For example, we can state that the type \D{⊤} is
+inhabited by producing the witness \I{⋅},
+\begin{code}[hide]
+module HiddenDec where
+\end{code}
+\begin{code}
+  _ : Dec ⊤
+  _ = yes ⋅
+\end{code}
+and that the type \D{⊥} is not,
+\begin{code}
+  _ : Dec ⊥
+  _ = no λ()
+\end{code}
+by discharging the absurd pattern by $λ()$. The constructor \I{no} takes a value
+of type \F{¬}\D{⊥}, which stands for \D{⊥} → \D{⊥}. Since the left-hand side is
+absurd, Agda allows us to conclude anything, even \D{⊥}, by this syntax.
+
+Now we can define what it means for a type to possess decidable equality,
 \begin{code}
 Decidable : (A : Set) → Set
 Decidable A = ∀ (a b : A) → Dec (a ≡ b)
@@ -498,7 +562,9 @@ Decidable A = ∀ (a b : A) → Dec (a ≡ b)
 Here we specify that for any two values of that type we must be able to produce
 an answer whether they are equal or not.
 
-As an example, let us define decidable equality for the type of Naturals,
+As an example, let us define decidable equality for the type of Naturals. We
+also use this as an excuse to introduce the keyword \AgdaKeyword{with} which can
+be used to make a case-split on some expression,
 \begin{code}[hide]
 open import Data.Nat using (ℕ; zero; suc)
 \end{code}
