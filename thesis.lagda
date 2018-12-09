@@ -109,7 +109,7 @@ helpful in order for the reader to be able to appreciate all of the below
 content, however it is not assumed.
 
 \section{Intuitionistic logic}
-Intuitionistic logic\parencite{brouwer1907foundations, brouwer1908unreliability}
+Intuitionistic logic~\parencite{brouwer1907foundations, brouwer1908unreliability}
 is a logic which, unlike most of current mathematics, only allows for
 constructive arguments. In practice, the main difference is that proof by
 contradiction is not allowed: in order to show that something is the case, it is
@@ -125,12 +125,12 @@ Certain other well-known tautologies, such as double negation elimination,
 \]
 are equivalent to this principle. It is also the case that the axiom of
 choice, as formulated in set theory, implies the law of the excluded middle, a
-result by Diaconescu\parencite{diaconescu1975axiom}.
+result by Diaconescu~\parencite{diaconescu1975axiom}.
 
 Intuitionistic logic began as an attempt by Brouwer to develop a base for all
 mathematics that would more closely follow the intuitions of the human mind.
 Futhermore, the Stanford Encyclopedia of Philosophy's entry on
-Intuitionism\parencite{sep-logic-intuitionistic} states,
+Intuitionism~\parencite{sep-logic-intuitionistic} states,
 
 \begin{displayquote}
   (…) to Brouwer the general LEM was equivalent to the a priori assumption that
@@ -141,7 +141,7 @@ Intuitionism\parencite{sep-logic-intuitionistic} states,
 In practice, there are considerations with regards to constructive approaches
 other than a purely philosophical one. Under the standard
 Brouwer-Heyting-Kolmogorov interpretation of intuitionistic
-logic\parencite{troelstra2011history}, working in this setting means that every
+logic~\parencite{troelstra2011history}, working in this setting means that every
 proposition proven amounts to a recipe, an algorithm, on how to transform the
 assumptions, or inputs, into the result, or output. For this reason,
 intuitionistic logic should be of high interest especially to computer scientists.
@@ -149,38 +149,38 @@ intuitionistic logic should be of high interest especially to computer scientist
 As an instructive example, consider the normalization of terms in some theory.
 It has been discovered that if one can establish soundness and completeness of
 this theory with regard to some suitable semantics, this naturally gives rise to
-a normalizer for this theory \parencite{coquand2002formalised}, merely by way of
+a normalizer for this theory~\parencite{coquand2002formalised}, merely by way of
 reflecting the term into the semantical structure (soundness), and reifying from
 the semantical structure back into syntax (completeness). This approach to
 normalization is commonly referred to as normalization by evaluation and has
 been used as early as 1975 by Martin-Löf in order to establish decidability of
-type-checking for a dependent type theory\parencite{martin1975intuitionistic},
+type-checking for a dependent type theory~\parencite{martin1975intuitionistic},
 albeit not under the moniker of normalization by evaluation
-\parencite{abel2013normalization}.
+~\parencite{abel2013normalization}.
 
 \section{Type Theory}
 Type theory was first introduced by Whitehead and Russell in 1910 in their
-transformational work Principia Mathematica\parencite{whitehead1912principia} as
+transformational work Principia Mathematica~\parencite{whitehead1912principia} as
 a response to Russell's discovery of inconsistency of naïve set
-theory\parencite{frege1982philosophical} in 1901. In type theory, every
+theory~\parencite{frege1982philosophical} in 1901. In type theory, every
 expression has an associated type, thus allowing syntactical restrictions to be
 put on which propositions can be formulated. Contrast this with set theory,
 where propositions such as $2 ∈ 3$ can be formulated\footnote{The above being,
   in fact, true, as per the standard construction of natural numbers in set theory
-  due to von Neumann\parencite{von1923introduction}.}.
+  due to von Neumann~\parencite{von1923introduction}.}.
 
 The next breakthrough in type theory was the discovery of the Simply Typed λ
-Calculus\parencite{church1940formulation} by Church in 1940. This, too, came as a way to
-avoid paradoxes present in the Untyped λ Calculus\parencite{church1932set},
+Calculus~\parencite{church1940formulation} by Church in 1940. This, too, came as a way to
+avoid paradoxes present in the Untyped λ Calculus~\parencite{church1932set},
 which was found to be inconsistent by Kleene and
-Rosser\parencite{kleene1935inconsistency}. The Untyped λ calculus was introduced
+Rosser~\parencite{kleene1935inconsistency}. The Untyped λ calculus was introduced
 as a universal model of computation, a point at which it succeeded, as it is
-equivalent in strength to a Turing machine\parencite{turing1937computability}.
+equivalent in strength to a Turing machine~\parencite{turing1937computability}.
 \subsection{Curry-Howard Correspondence}
 It was later observed by Howard that the Simply Typed λ Calculus (STLC) could be
 viewed as a language for construction of proofs in Natural
-Deduction \parencite{howard1980formulae} (ND), an intuitionistic proof calculus
-introduced originally by Gentzen in 1934\parencite{gentzen1935untersuchungen} as
+Deduction~\parencite{howard1980formulae} (ND), an intuitionistic proof calculus
+introduced originally by Gentzen in 1934~\parencite{gentzen1935untersuchungen} as
 an attempt at a more natural language for logic. This correspondence simply
 states that \textit{propositions} of ND are isomorphic with \textit{types} in
 STLC, \textit{proofs} of ND with \textit{terms} (or programs) of STLC, and
@@ -193,12 +193,12 @@ type-checker. However, in order to be able to express more interesting
 properties, we need a type system stronger than the Simply Typed λ Calculus.
 \subsection{Dependent Types}
 In order to extend the expressivity to non-trivial propositions, dependent types
-were proposed first by de Bruijn\parencite{de1967description} in 1967 in his
+were proposed first by de Bruijn~\parencite{de1967description} in 1967 in his
 project Automath, aiming at creating a language for encoding computer-verified
 mathematics. Later, in 1972, Martin-Löf formulated his intuitionistic type
-theory\parencite{martin1975intuitionistic}, in which dependent types play a
+theory~\parencite{martin1975intuitionistic}, in which dependent types play a
 central role. More recently, starting in the mid 2000's, Voevodsky introduced
-Univalent Foundations\parencite{voevodsky2011univalent}, which aim to give
+Univalent Foundations~\parencite{voevodsky2011univalent}, which aim to give
 practical foundations for modern mathematics in a way that allows for
 computer-verified proofs.
 
@@ -240,7 +240,7 @@ this proposition.
 
   \verb| ¯\(°_0)/¯| Dunno, lol.
 \end{chapquote}
-Agda\parencite{norell2007towards} is a functional programming language with
+Agda~\parencite{norell2007towards} is a functional programming language with
 first-class support for dependent types. As per the Curry-Howard correspondence,
 well-typed programs in Agda can also be understood as proofs of inhabitance of
 their correspoinding types; types being understood as propositions.
@@ -248,8 +248,8 @@ their correspoinding types; types being understood as propositions.
 This section is meant as a crash-course in Agda syntax, not semantics. In other
 words, those not familiar with dependently typed programming languages and/or
 proof assistants would do better to follow one of the books published on this
-topic. See \parencite{friedman2018little} for an introduction to dependent types
-as a whole, or \parencite{stump2016verified} for an in-depth introduction to
+topic. See~\parencite{friedman2018little} for an introduction to dependent types
+as a whole, or~\parencite{stump2016verified} for an in-depth introduction to
 dependendly typed programming and theorem proving in Agda.
 \section{Overview}
 Due to the presence of dependent types, all functions defined must be provably
@@ -260,7 +260,7 @@ computations can still be expressed, with some help from the type system.
 
 Agda has strong support for mixfix operators\footnote{Operators which can have
   multiple name parts and are infix, prefix, postfix, or
-  closed\parencite{mixfix}.} and Unicode identifiers. This often allows for
+  closed~\parencite{mixfix}.} and Unicode identifiers. This often allows for
 developing a notation close to what one has come to expect in mathematics.
 However, with great power comes great responsibility and one should be careful
 to not abuse the notation too much, a problem exacerbated by the fact that
@@ -268,11 +268,11 @@ operator overloading, as used excessively in mathematics, is not directly
 possible.
 
 As an aside, there is also some support for proof automation in
-Agda\parencite{auto}, however from the author's experience the usability of this
+Agda~\parencite{auto}, however from the author's experience the usability of this
 tool is limited to simple cases. In contrast with tools such as
-Coq\parencite{barras1997coq}, Agda suffers from lower degree of automation: there are no
+Coq~\parencite{barras1997coq}, Agda suffers from lower degree of automation: there are no
 built-in tactics, though their implementation is possible through
-reflection\parencite{agda-manual}.
+reflection~\parencite{agda-manual}.
 \subsection{Trivial Types}
 A type which is trivially inhabited by a single value, This
 type is often refered to as \textit{Top} or \textit{Unit}. In Agda,
@@ -503,13 +503,13 @@ deductive systems. We will take the simplest example there is, the Simply Typed
 
 For a more in-depth treatment of the topic of formalizing programming languages
 and programming language theory in Agda, please refer to
-\parencite{wadler2018programming}.
+~\parencite{wadler2018programming}.
 
 \subsection{De Bruijn Indices}
 Firstly, we shall need some machinery to make our lives easier. We could use
 string literals as variable names in our system, however this would lead to
 certain difficulties further on. Instead, we shall use the concept commonly
-referred to as De Bruijn indices\parencite{de1972lambda}. These replace variable
+referred to as De Bruijn indices~\parencite{de1972lambda}. These replace variable
 names with natural numbers, where each number $n$ refers to the variable bound
 by the binder $n$ positions above the current scope in the syntactical tree. Some
 examples of this naming scheme are shown in Figure~\ref{debruijn}.
@@ -705,14 +705,14 @@ Total languages, such as Agda, are sometimes wrongfully accused of lacking
 Turing-completeness. In reality, there are ways to model possibly
 non-terminating programs -- given some time limit for their execution. One such
 way is to introduce a monad which captures the concept of a recursive
-call\parencite{mcbride2015turing}.
+call~\parencite{mcbride2015turing}.
 
 In this section we introduce the concept of coinduction on the example of
 streams and then proceed to define a monad which will be used later on in
 chapter 5 to give semantics to the execution of SECD machine code.
 
 For a more in-depth overview of coinduction in Agda and especially the
-aforementioned monad, please refer to \parencite{coinduction}.
+aforementioned monad, please refer to~\parencite{coinduction}.
 
 The concepts presented can be made specific in category theory, where given a
 functor $F$ we can speak of $F-$coalgebras. Coinduction, then, is a way of
@@ -727,7 +727,7 @@ data, are constructed, elements of coalgebraic structures, or codata, are
 observed.
 
 For a more in-depth introduction to coalgebra, please see
-\parencite{jacobs_2016}.
+~\parencite{jacobs_2016}.
 
 \subsection{Streams}
 Streams are infinite lists. For example, consider the succession of all natural
@@ -903,7 +903,7 @@ open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}
 
 \chapter{SECD Machine}
-\begin{chapquote}{Christopher Strachey, discussion following \parencite{landin1966next}, 1966}
+\begin{chapquote}{Christopher Strachey, discussion following~\parencite{landin1966next}, 1966}
   Any language which by mere chance of the way it is written makes it extremely
   difficult to write compositions of functions and very easy to write sequences of
   commands will, of course, in an obvious psychological way, hinder people from
@@ -914,24 +914,24 @@ open import Data.Integer using (+_; _+_; _-_; _*_)
 \section{Introduction}
 The \textbf{S}tack, \textbf{E}nvironment, \textbf{C}ontrol, \textbf{D}ump
 machine is a stack-based, call-by-value abstract execution machine that was
-first outlined by Landin in \parencite{landin1964mechanical}. It was regarded as
+first outlined by Landin in~\parencite{landin1964mechanical}. It was regarded as
 an underlying model of execution for a family of languages, specifically,
 languages based on the abstract formalism of λ calculus.
 
 Other machines have since been proposed, some derived from SECD, others not.
-Notable are the Krivine machine\parencite{krivine2007call}, which implements a
+Notable are the Krivine machine~\parencite{krivine2007call}, which implements a
 call-by-name semantics, and the ZAM (Zinc abstract machine), which serves as a
 backend for the OCaml strict functional programming language
-\parencite{leroy1990zinc}.
+~\parencite{leroy1990zinc}.
 
 For an overview of different kinds of SECD machines, including a modern
 presentation of the standard call-by-value, and also call-by-name and
 call-by-need version of the machine, and a more modern version of the machine
 which foregoes the dump in favour of using the stack for the purposes of the
-dump, see \parencite{danvy2004rational}.
+dump, see~\parencite{danvy2004rational}.
 
 There have also been hardware implementations of this formalism, e.g.
-\parencite{graham1989secd, secdchip}, though it is unclear to the author whether
+~\parencite{graham1989secd, secdchip}, though it is unclear to the author whether
 the issue with verifying the garbage collector mentioned in the latter work was
 ever fully addressed.
 
@@ -1809,7 +1809,7 @@ fac = ƛ if (var 𝟎 == #⁺ 1)
 \end{code}
 \subsection{Compilation}
 For the compilation, we use a scheme of two mutually recursive functions
-adapted from \parencite{modernsecd}. The first function, \F{compileT}, is used
+adapted from~\parencite{modernsecd}. The first function, \F{compileT}, is used
 to compile expressions in the tail position, whereas \F{compile} is used for the
 other cases.
 \begin{code}
