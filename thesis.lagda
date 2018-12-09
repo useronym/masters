@@ -606,208 +606,6 @@ a ≟ℤ b with a ≟ℤ' b
   where ⊥⊥ : E.⊥ → ⊥
         ⊥⊥ ()
 \end{code}
-\section{Formalizing Type Systems}
-In what follows, we take a look at how we can use Agda to formalize
-deductive systems. We will take the simplest example there is, the Simply Typed
-λ Calculus. Some surface-level knowledge of this calculus is assumed.
-
-For a more in-depth treatment of the topic of formalizing programming languages
-and programming language theory in Agda, please refer to
-~\parencite{wadler2018programming}.
-
-\subsection{De Bruijn Indices}
-Firstly, we shall need some machinery to make our lives easier. We could use
-string literals as variable names in our system, however this would lead to
-certain difficulties further on. Instead, we shall use the concept commonly
-referred to as De Bruijn indices~\parencite{de1972lambda}. These replace variable
-names with natural numbers, where each number $n$ refers to the variable bound
-by the binder $n$ positions above the current scope in the syntactical tree. Some
-examples of this naming scheme are shown in Figure~\ref{debruijn}.
-\begin{figure}[h]
-  \centering
-  \begin{tabular}{ l l }
-    \multicolumn{1}{c}{Literal syntax} & \multicolumn{1}{c}{De Bruijn syntax} \\
-    \midrule
-    \verb|λx.x| & \verb|λ 0| \\
-    \verb|λx.λy.x| & \verb|λλ 1| \\
-    \verb|λx.λy.λz.x z (y z)| & \verb|λλλ 2 0 (1 0)| \\
-    \verb|λf.(λx.f(x x)) (λx.f(x x))| & \verb|λ(λ 1 (0 0)) (λ 1 (0 0))| \\
-  \end{tabular}
-  \caption{Examples of λ terms using standard naming scheme on the left and
-    using De Bruijn indices on the right.}
-  \label{debruijn}
-\end{figure}
-The immediately apparent advantage of using De Bruijn indices is that
-α-equivalence of λ terms becomes trivially decidable by way of purely syntactic
-equality. Other advantages include easier formalization.
-\subsubsection{Implementation}
-To implement De Bruijn indices in Agda, we will express what it means for a
-variable to be present in a context. We shall assume that a context is a list of
-types, as this is how contexts will be defined in the next subsection. We will
-express list membership as a new data type,
-\begin{code}
-data _∈_ {A : Set} : A → List A → Set where
-  here   : ∀ {x xs} → x ∈ (x ∷ xs)
-  there  : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
-\end{code}
-\begin{code}[hide]
-infix 10 _∈_
-\end{code}
-The first constructor says that an element is present in a list if that element
-is the head of the list. The second constructor says that if we already know
-that our element \A{x} is in a list, we can extend the list with some other
-element \A{a} and \A{x} will still be present in the new list.
-
-Now we can also define a function which, given a proof that an element is in a
-list, returns the aforementioned element.
-\begin{code}
-lookup : ∀ {A x xs} → x ∈ xs → A
-lookup {x = x} here  = x
-lookup (there w)     = lookup w
-\end{code}
-We will also define shorthands to construct often-used elements of \D{\_∈\_} for
-use in examples later on.
-\begin{code}
-𝟎 : ∀ {A} {x : A} {xs : List A} → x ∈ (x ∷ xs)
-𝟎 = here
-
-𝟏 : ∀ {A} {x y : A} {xs : List A} → x ∈ (y ∷ x ∷ xs)
-𝟏 = there here
-
-𝟐 : ∀ {A} {x y z : A} {xs : List A} → x ∈ (z ∷ y ∷ x ∷ xs)
-𝟐 = there (there here)
-\end{code}
-\subsection{Example: Simply Typed λ Calculus}
-In this subsection we will, in preparation of the main matter of this thesis,
-introduce the way typed deductive systems can be formalized in Agda. As
-promised, we will formalize the Simply Typed λ Calculus.
-\subsubsection{Syntax}
-\label{lambda_syntax}
-First, we define the types in our system.
-\begin{code}[hide]
-module Hidden3 where
-\end{code}
-\begin{code}
-  data ★ : Set where
-    τ    : ★
-    _⇒_  : ★ → ★ → ★
-\end{code}
-\begin{code}[hide]
-  infixr 20 _⇒_
-\end{code}
-Here we defined some atomic type \I{ι} and a binary type constructor for
-function types. We proceed by defining context as a list of types.
-\begin{code}
-  Context : Set
-  Context = List ★
-\end{code}
-Now we are finally able to define the deductive rules that make up the calculus,
-using De Bruijn indices as explained above.
-\begin{code}
-  data _⊢_ : Context → ★ → Set where
-    var  : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
-    ƛ_   : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
-    _$_  : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
-\end{code}
-\begin{code}[hide]
-  infix 4 _⊢_
-  infixr 5 ƛ_
-  infixl 10 _$_
-\end{code}
-The constructors above should be fairly self-explanatory: they correspond
-exactly to the typing rules of the calculus. In the first rule we employed the
-data type \D{\_∈\_} implenting De Bruijn indices. Second rule captures the
-concept of λ-abstraction, and the last rule is function application.
-
-We can see some examples now,
-\begin{code}
-  K : ∀ {Γ α β} → Γ ⊢ α ⇒ β ⇒ α
-  K = ƛ ƛ (var 𝟏)
-
-  S : ∀ {Γ α β γ} → Γ ⊢ (α ⇒ β ⇒ γ) ⇒ (α ⇒ β) ⇒ α ⇒ γ
-  S = ƛ ƛ ƛ var 𝟐 $ var 𝟎 $ (var 𝟏 $ var 𝟎)
-\end{code}
-Note how we use Agda polymorphism to construct a polymorphic term of our
-calculus; there is no polymorhism in the calculus itself.
-
-The advantage of this presentation is that only well-typed syntax is
-representable. Thus, whenever we work with a term of our calculus, it is
-guaranteed to be well-typed, which often simplifies things. We will see an
-example of this in what follows.
-\subsubsection{Semantics by Embedding into Agda}
-\label{lambda_semantics}
-Now that we have defined the syntax, the next step is to give it semantics. We
-will do this in a straightforward manned by way of embedding our calculus into
-Agda.
-
-First, we define the semantics of types, by assigning Agda types to types in our calculus.
-\begin{code}
-  ⟦_⟧★ : ★ → Set
-  ⟦ τ ⟧★      = ℕ
-  ⟦ α ⇒ β ⟧★  = ⟦ α ⟧★ → ⟦ β ⟧★
-\end{code}
-Here we choose to realize our atomic type as the type of Natural numbers. These
-are chosen for being a nontrivial type. The function type is realized
-inductively as an Agda function type.
-
-Next, we give semantics to contexts.
-\begin{code}
-  ⟦_⟧C : Context → Set
-  ⟦ [] ⟧C      = ⊤
-  ⟦ x ∷ xs ⟧C  = ⟦ x ⟧★ × ⟦ xs ⟧C
-\end{code}
-The empty context can be realized trivially by the unit type. A non-empty
-context is realized as the product of the realization of the first element
-and, inductively, a realization of the rest of the context.
-
-Now we are ready to give semantics to terms. In order to be able to proceed by
-induction with regard to the structure of the term, we must operate on open terms.
-\begin{code}
-  ⟦_⟧ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
-\end{code}
-The second argument is a realization of the context in the term, which we will
-need for variables,
-\begin{code}
-  ⟦ var here ⟧ (x , _)        = x
-  ⟦ var (there x) ⟧ (_ , xs)  = ⟦ var x ⟧ xs
-\end{code}
-Here we case-split on the variable, in case it is zero we take the first element
-of the context, otherwise we recurse into the context until we hit zero. Note
-that the shape of the context Γ is guaranteed here to never be empty, because the
-argument to \I{var} is a proof of membership for Γ. Thus, Agda realizes that Γ
-can never be empty and we need not bother ourselves with a case-split for the
-empty context; indeed, we would be hard-pressed to give it an implementation.
-\begin{code}
-  ⟦ ƛ x ⟧ γ                   = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
-\end{code}
-The case for lambda abstraction constructs an Agda function which will take as
-the argument a value of the corresponding type and compute the semantics for the
-lambda's body, after extending the context with the argument.
-\begin{code}
-  ⟦ f $ x ⟧ γ                 = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
-\end{code}
-Finally, to give semantics to function application, we simply perform Agda
-function application on the subexpressions, after having computed their
-semantics in the current context.
-
-Thanks to propositional equality, we can embed tests directly into Agda code and
-see whether the terms we defined above receive the expected semantics.
-\begin{code}
-  Kℕ : ℕ → ℕ → ℕ
-  Kℕ x _ = x
-
-  _ : ⟦ K ⟧ ⋅ ≡ Kℕ
-  _ = refl
-
-  Sℕ : (ℕ → ℕ → ℕ) → (ℕ → ℕ) → ℕ → ℕ
-  Sℕ x y z = x z (y z)
-
-  _ : ⟦ S ⟧ ⋅ ≡ Sℕ
-  _ = refl
-\end{code}
-Since this thesis can only be rendered if all the Agda code has successfully
-type-checked, the fact that the reader is currently reading this paragraph means
-the semantics function as expected!
 
 \section{Coinduction}
 \label{coinduction}
@@ -1012,6 +810,222 @@ another.
 open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}
 
+\chapter{Formalizing Type Systems}
+In what follows, we take a look at how we can use Agda to formalize
+deductive systems and/or typed calculi. We will concern ourselves with the
+simplest example there is, the Simply Typed λ Calculus.
+
+Deductive systems are formal languages which allow the statement and proof of
+propositions in a manner that makes the conclusions indisputable, as long as one
+can agree on assumptions used in the proof and laws of reason encompassed by the
+system.
+
+For a more in-depth treatment of the topic of formalizing programming languages
+and programming language theory in Agda, please refer
+to~\parencite{wadler2018programming}.
+
+For a brief history of λ calculi, please refer to chapter 2.
+
+λ calculi are arguably the simplest model of computation. They almost invariably
+contain the basic concepts, which are variables, function formation, and
+function application. They come in many forms and can be adapted to model any
+specific requirements we may have, e.g. resource-conscious linear
+calculi~\parencite{girard1987linear}, concurrency-oriented process
+calculi~\parencite{boudol1989towards}, or calculi modeling quantum
+computing~\parencite{van2004lambda}.
+\section{De Bruijn Indices}
+Firstly, we shall need some machinery to make our lives easier. We could use
+string literals as variable names in our system, however this would lead to
+certain difficulties further on. Instead, we shall use the concept commonly
+referred to as De Bruijn indices~\parencite{de1972lambda}. These replace variable
+names with natural numbers, where each number $n$ refers to the variable bound
+by the binder $n$ positions above the current scope in the syntactical tree. Some
+examples of this naming scheme are shown in Figure~\ref{debruijn}.
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{ l l }
+    \multicolumn{1}{c}{Literal syntax} & \multicolumn{1}{c}{De Bruijn syntax} \\
+    \midrule
+    \verb|λx.x| & \verb|λ 0| \\
+    \verb|λx.λy.x| & \verb|λλ 1| \\
+    \verb|λx.λy.λz.x z (y z)| & \verb|λλλ 2 0 (1 0)| \\
+    \verb|λf.(λx.f(x x)) (λx.f(x x))| & \verb|λ(λ 1 (0 0)) (λ 1 (0 0))| \\
+  \end{tabular}
+  \caption{Examples of λ terms using standard naming scheme on the left and
+    using De Bruijn indices on the right.}
+  \label{debruijn}
+\end{figure}
+The immediately apparent advantage of using De Bruijn indices is that
+α-equivalence of λ terms becomes trivially decidable by way of purely syntactic
+equality. Other advantages include easier formalization.
+\subsection{Implementation}
+To implement De Bruijn indices in Agda, we will express what it means for a
+variable to be present in a context. We shall assume that a context is a list of
+types, as this is how contexts will be defined in the next subsection. We will
+express list membership as a new data type,
+\begin{code}
+data _∈_ {A : Set} : A → List A → Set where
+  here   : ∀ {x xs} → x ∈ (x ∷ xs)
+  there  : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
+\end{code}
+\begin{code}[hide]
+infix 10 _∈_
+\end{code}
+The first constructor says that an element is present in a list if that element
+is the head of the list. The second constructor says that if we already know
+that our element \A{x} is in a list, we can extend the list with some other
+element \A{a} and \A{x} will still be present in the new list.
+
+Now we can also define a function which, given a proof that an element is in a
+list, returns the aforementioned element.
+\begin{code}
+lookup : ∀ {A x xs} → x ∈ xs → A
+lookup {x = x} here  = x
+lookup (there w)     = lookup w
+\end{code}
+We will also define shorthands to construct often-used elements of \D{\_∈\_} for
+use in examples later on.
+\begin{code}
+𝟎 : ∀ {A} {x : A} {xs : List A} → x ∈ (x ∷ xs)
+𝟎 = here
+
+𝟏 : ∀ {A} {x y : A} {xs : List A} → x ∈ (y ∷ x ∷ xs)
+𝟏 = there here
+
+𝟐 : ∀ {A} {x y z : A} {xs : List A} → x ∈ (z ∷ y ∷ x ∷ xs)
+𝟐 = there (there here)
+\end{code}
+\section{Example: Simply Typed λ Calculus}
+In this subsection we will, in preparation of the main matter of this thesis,
+introduce the way typed deductive systems can be formalized in Agda. As
+promised, we will formalize the Simply Typed λ Calculus.
+\subsection{Syntax}
+\label{lambda_syntax}
+First, we define the types in our system.
+\begin{code}[hide]
+module Hidden3 where
+\end{code}
+\begin{code}
+  data ★ : Set where
+    τ    : ★
+    _⇒_  : ★ → ★ → ★
+\end{code}
+\begin{code}[hide]
+  infixr 20 _⇒_
+\end{code}
+Here we defined some atomic type \I{ι} and a binary type constructor for
+function types. We proceed by defining context as a list of types.
+\begin{code}
+  Context : Set
+  Context = List ★
+\end{code}
+Now we are finally able to define the deductive rules that make up the calculus,
+using De Bruijn indices as explained above.
+\begin{code}
+  data _⊢_ : Context → ★ → Set where
+    var  : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
+    ƛ_   : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
+    _$_  : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
+\end{code}
+\begin{code}[hide]
+  infix 4 _⊢_
+  infixr 5 ƛ_
+  infixl 10 _$_
+\end{code}
+The constructors above should be fairly self-explanatory: they correspond
+exactly to the typing rules of the calculus. In the first rule we employed the
+data type \D{\_∈\_} implenting De Bruijn indices. Second rule captures the
+concept of λ-abstraction, and the last rule is function application.
+
+We can see some examples now,
+\begin{code}
+  K : ∀ {Γ α β} → Γ ⊢ α ⇒ β ⇒ α
+  K = ƛ ƛ (var 𝟏)
+
+  S : ∀ {Γ α β γ} → Γ ⊢ (α ⇒ β ⇒ γ) ⇒ (α ⇒ β) ⇒ α ⇒ γ
+  S = ƛ ƛ ƛ var 𝟐 $ var 𝟎 $ (var 𝟏 $ var 𝟎)
+\end{code}
+Note how we use Agda polymorphism to construct a polymorphic term of our
+calculus; there is no polymorhism in the calculus itself.
+
+The advantage of this presentation is that only well-typed syntax is
+representable. Thus, whenever we work with a term of our calculus, it is
+guaranteed to be well-typed, which often simplifies things. We will see an
+example of this in what follows.
+\subsection{Semantics by Embedding into Agda}
+\label{lambda_semantics}
+Now that we have defined the syntax, the next step is to give it semantics. We
+will do this in a straightforward manned by way of embedding our calculus into
+Agda.
+
+First, we define the semantics of types, by assigning Agda types to types in our calculus.
+\begin{code}
+  ⟦_⟧★ : ★ → Set
+  ⟦ τ ⟧★      = ℕ
+  ⟦ α ⇒ β ⟧★  = ⟦ α ⟧★ → ⟦ β ⟧★
+\end{code}
+Here we choose to realize our atomic type as the type of Natural numbers. These
+are chosen for being a nontrivial type. The function type is realized
+inductively as an Agda function type.
+
+Next, we give semantics to contexts.
+\begin{code}
+  ⟦_⟧C : Context → Set
+  ⟦ [] ⟧C      = ⊤
+  ⟦ x ∷ xs ⟧C  = ⟦ x ⟧★ × ⟦ xs ⟧C
+\end{code}
+The empty context can be realized trivially by the unit type. A non-empty
+context is realized as the product of the realization of the first element
+and, inductively, a realization of the rest of the context.
+
+Now we are ready to give semantics to terms. In order to be able to proceed by
+induction with regard to the structure of the term, we must operate on open terms.
+\begin{code}
+  ⟦_⟧ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
+\end{code}
+The second argument is a realization of the context in the term, which we will
+need for variables,
+\begin{code}
+  ⟦ var here ⟧ (x , _)        = x
+  ⟦ var (there x) ⟧ (_ , xs)  = ⟦ var x ⟧ xs
+\end{code}
+Here we case-split on the variable, in case it is zero we take the first element
+of the context, otherwise we recurse into the context until we hit zero. Note
+that the shape of the context Γ is guaranteed here to never be empty, because the
+argument to \I{var} is a proof of membership for Γ. Thus, Agda realizes that Γ
+can never be empty and we need not bother ourselves with a case-split for the
+empty context; indeed, we would be hard-pressed to give it an implementation.
+\begin{code}
+  ⟦ ƛ x ⟧ γ                   = λ ⟦α⟧ → ⟦ x ⟧ (⟦α⟧ , γ)
+\end{code}
+The case for lambda abstraction constructs an Agda function which will take as
+the argument a value of the corresponding type and compute the semantics for the
+lambda's body, after extending the context with the argument.
+\begin{code}
+  ⟦ f $ x ⟧ γ                 = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
+\end{code}
+Finally, to give semantics to function application, we simply perform Agda
+function application on the subexpressions, after having computed their
+semantics in the current context.
+
+Thanks to propositional equality, we can embed tests directly into Agda code and
+see whether the terms we defined above receive the expected semantics.
+\begin{code}
+  Kℕ : ℕ → ℕ → ℕ
+  Kℕ x _ = x
+
+  _ : ⟦ K ⟧ ⋅ ≡ Kℕ
+  _ = refl
+
+  Sℕ : (ℕ → ℕ → ℕ) → (ℕ → ℕ) → ℕ → ℕ
+  Sℕ x y z = x z (y z)
+
+  _ : ⟦ S ⟧ ⋅ ≡ Sℕ
+  _ = refl
+\end{code}
+Since this thesis can only be rendered if all the Agda code has successfully
+type-checked, the fact that the reader is currently reading this paragraph means
+the semantics function as expected!
 \chapter{SECD Machine}
 \begin{chapquote}{Christopher Strachey, discussion following~\parencite{landin1966next}, 1966}
   Any language which by mere chance of the way it is written makes it extremely
