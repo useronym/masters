@@ -1003,7 +1003,7 @@ induction with regard to the structure of the term, we must operate on open term
 \begin{code}
   ⟦_⟧_ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
 \end{code}
-The second argument is a realization of the context in the term, which we will
+The second argument is a realization of the context in the term, which we shall
 need for variables,
 \begin{code}
   ⟦ var here ⟧ (x , _)        = x
@@ -1060,57 +1060,65 @@ the semantics functions as expected!
   different sorts of programs and different ways of solving problems.
 \end{chapquote}
 \section{Introduction}
-The \textbf{S}tack, \textbf{E}nvironment, \textbf{C}ontrol, \textbf{D}ump
-machine is a stack-based, call-by-value abstract execution machine that was
-first outlined by Landin in~\parencite{landin1964mechanical}. It was regarded as
-an underlying model of execution for a family of languages, specifically,
-languages based on the abstract formalism of λ calculus.
+The original \textbf{S}tack, \textbf{E}nvironment, \textbf{C}ontrol,
+\textbf{D}ump machine is a stack-based, call-by-value abstract execution machine
+that was first outlined by Landin in~\parencite{landin1964mechanical}. It was
+regarded as an underlying model of execution for a family of languages,
+specifically, languages based on the abstract formalism of λ calculus.
 
-Other machines have since been proposed, some derived from SECD, others not.
-Notable are the Krivine machine~\parencite{krivine2007call}, which implements a
-call-by-name semantics, and the ZAM (Zinc abstract machine), which serves as a
-backend for the OCaml strict functional programming language
-~\parencite{leroy1990zinc}.
+Other machines modeling execution of functional languages have since been
+proposed, some derived from SECD, others not. Notable examples are the Krivine
+machine~\parencite{krivine2007call}, which implements a call-by-name semantics,
+and the ZAM (Zinc abstract machine), which serves as a backend for the OCaml
+strict functional programming language~\parencite{leroy1990zinc}.
 
 For an overview of different kinds of SECD machines, including a modern
 presentation of the standard call-by-value, and also call-by-name and
-call-by-need version of the machine, and a more modern version of the machine
-which foregoes the dump in favour of using the stack for the purposes of the
-dump, see~\parencite{danvy2004rational}.
+call-by-need versions of the machine, see~\parencite{danvy2004rational}.
 
-There have also been hardware implementations of this formalism, e.g.
-~\parencite{graham1989secd, secdchip}, though it is unclear to the author whether
-the issue with verifying the garbage collector mentioned in the latter work was
-ever fully addressed.
+There have also been hardware implementations of this formalism,
+e.g.~\parencite{graham1989secd, secdchip}.
 
-This chapter is meant as an intuitive overview of the formalism. We will present
-the machine with the standard call-by-value semantics.
+This chapter is meant as an intuitive overview of the formalism. We present
+the machine with the standard call-by-value semantics, following the original
+presentation by Landin~\parencite{landin1964mechanical}.
 \section{Definition}
+The machine operates by executing instructions stored as a linked list, referred
+to as the control. Each instruction has the ability to change the machine state.
+The machine is notable for its first-class treatment of functions. As a natural
+target of compilation from the Untyped λ Calculus, the machine is a
+Turing-complete formalism.
+
 Faithful to its name, the machine is made up of four components:
 \begin{itemize}
-  \item Stack -- stores values operated on. Atomic operations, such as integer
-    addition, are performed here;
+  \item Stack -- stores values and functions operated on. Atomic operations,
+    such as integer addition, are performed here;
   \item Environment -- stores immutable assignments, such as function arguments and
-    values bound with the \textit{let} construct;
+    values bound by the \textit{let} construct;
   \item Control -- stores a list of instructions awaiting execution;
-  \item Dump -- serves as a baggage place for storing the current context when a
-    function call is performed.
+  \item Dump -- serves as a store for pushing the current context when a
+    function call is performed. The context is again retrieved when a function
+    call returns.
 \end{itemize}
-Regarding the memory model, all four items defined here are meant to be realized
-as linked lists.
+The standard implementation sees all four of the above items as linked lists.  
 \section{Execution}
 Execution of the machine consists of reading instructions from the Control and
-modifying the state of the machine as necessary. The basic instructions are
+modifying the state of the machine as necessary. The basic instructions are:
 \begin{itemize}
-  \item \texttt{ld x} –- load the value bound to the identifier \texttt{x} from
+  \item \texttt{ld x} -- load the value bound to the identifier \texttt{x} from
     the environment and put it on the stack;
-  \item \texttt{ldf f} –- load the function -- i.e. a sequence of instructions --
-    \texttt{f} in the current environment, constructing a closure, and put it on the
-    stack;
-  \item \texttt{ap} –- given that a closure and a value are present on the top
-    of the stack, perform function application and put the return value on the
-    stack;
-  \item \texttt{rtn} –- return from a function, restoring control to the caller.
+  \item \texttt{ldf f} -- load the function — i.e. a sequence of instructions —
+    \texttt{f} in the current environment, constructing a \textit{closure}, and put it on the
+    stack. A Closure is therefore a list of instructions together with an
+    environment it can be executed in;
+  \item \texttt{ap} -- given that a closure and a value are present on the top
+    of the stack, perform function application and afterwards put the return
+    value on the stack. Function application consists of popping the closure and
+    value from the stack, dumping the current context onto the dump, emptying the
+    stack, installing the closure's environment together with the argument, and
+    finally loading the closure's code into the control unit;
+  \item \texttt{rtn} -- return from a function, restoring the context from the
+    function dump.
 \end{itemize}
 In addition, there are instructions for primitive operations, such as integer
 addition, list operations such as the head and tail operations, etc. All these
@@ -1119,21 +1127,11 @@ the top of the stack and put back the result.
 
 We use the notation $f[e]$ to mean the closure of function $f$ in the
 environment $e$ and $∅$ to mean an empty stack, environment, control, or dump.
-The notation $e(x)$ refers to the value in environment $e$ bound under the
+The notation $e(x)$ refers to the value in environment $e$ bound to the
 identifier $x$.
 
 To see how the basic instructions and the addition instruction transform the
 machine state, please refer to Figure~\ref{secd}.
-
-To see an example of execution of the machine, please refer to Figure
-~\ref{secdexample}.
-
-It is usual to use De Bruijn indices when referring to identifiers in the
-\texttt{ld} instruction. E.g. \texttt{ld 0} loads the topmost value in the
-environment and puts it on the stack. Hence, De Bruijn indices are used in the
-example in this chapter. They will also be used in the following chapter in the
-Agda formalization.
-
 \newcolumntype{L}{>{$}l<{$}}
 \begin{figure}[h]
   \centering
@@ -1151,16 +1149,28 @@ Agda formalization.
   \end{tabular}
   \caption{The above table presents the transition relation of the SECD Machine.
   On the left is the state of the machine before the execution of a single
-  instruction. On the right is the newly mutated state.}
+  instruction. On the right is the newly mutated state. The components are read
+  from left to right, i.e. the top is the leftmost value.}
   \label{secd}
 \end{figure}
+It is usual to use De Bruijn indices when referring to identifiers in the
+\texttt{ld} instruction. E.g. \texttt{ld 0} loads the topmost value in the
+environment and puts it on the stack. Hence, De Bruijn indices are used in the
+example in this chapter. They will also be used in the following chapter in the
+Agda formalization.
+
+To see an example of execution of the machine, please refer to Figure
+~\ref{secdexample}. This example loads a function, the number $1$, and performs
+application of the loaded function, turned closure, to the number. The closure
+increments its argument by one. After the closure returns, $3$ is added to the
+returned value. The final state has the number $5$ on the stack.
 \begin{figure}[h]
   \centering
   \begin{tabular}{L | L | L | L}
     \toprule
     \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c}{D} \\
     \midrule
-    ∅       & ∅ & \texttt{ldf f, ldc 1, ap, ldc 3, add} & ∅                         \\
+    ∅       & ∅ & \texttt{ldf f, ldc 1, ap, …} & ∅                         \\
     f[∅]    & ∅ & \texttt{ldc 1, ap, ldc 3, add}        & ∅                         \\
     1, f[∅] & ∅ & \texttt{ap, ldc 3, add}               & ∅                         \\
     ∅       & 1 & \texttt{ldc 1, ld 0, add, rtn}        & (∅,∅,\texttt{ldc 3, add}) \\
@@ -1179,9 +1189,9 @@ Agda formalization.
 \end{figure}
 
 \chapter{Formalization}
-In this chapter, we approach the main topic of this thesis. We will formalize a
+In this chapter, we approach the main topic of this thesis. We formalize a
 SECD machine in Agda, with typed syntax, and then proceed to define the
-semantics by way of coinduction. Finally, we will define a typed λ calculus,
+semantics by way of coinduction. Finally, we define a typed λ calculus,
 corresponding exactly to the capabilities of the SECD machine, and define a
 compilation procedure from this calculus to typed SECD programs.
 
@@ -1229,8 +1239,8 @@ infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
 \label{secd_types}
-We start by defining the atomic constants our machine will recognize. We will
-limit ourselves to booleans and integers.
+We start by defining the atomic constants our machine will recognize. We limit
+ourselves to booleans and integers.
 \begin{code}
 data Const : Set where
   bool  : Bool → Const
