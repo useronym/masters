@@ -11,7 +11,7 @@
            %% at your faculty.
   notable,   %% This option causes the coloring of tables. Replace
            %% with `notable` to restore plain LaTeX tables.
-  nolof    %% This option prints the List of Figures. Replace with
+  nolof, nolot    %% This option prints the List of Figures. Replace with
            %% `nolof` to hide the List of Figures.
   %% More options are listed in the user guide at
   %% <http://mirrors.ctan.org/macros/latex/contrib/fithesis/guide/mu/fi.pdf>.
@@ -43,9 +43,9 @@
       me throughout this work.
 
       I would also like to thank many users of the Freenode IRC network for
-      helpful discussions regarding the topics of this thesis. This list
-      includes, but is not limited to, Guillaume Allais, Miëtek Bak, Paolo G.
-      Giarrusso.},
+      helpful discussions regarding various topics connected to matters contained in
+      this thesis. This list includes, but is not limited to, Ahmad Salim Al-Sibahi,
+      Guillaume Allais, Miëtek Bak, Paolo G. Giarrusso, and Andrea Vezzosi.},
     bib = bibliography.bib
 }
 
@@ -1118,7 +1118,7 @@ FunDump  = List Type
 For now, these only store the information regarding the types of the values in
 the machine. Later, when defining semantics, we will give realizations to these,
 similarly to how we handled contexts in the formalization of Simply Typed λ
-Calculus in ?.
+Calculus in \ref{lambda_semantics}.
 
 Finally, we define the state as a record storing the stack, environment, and the
 function dump.
@@ -1131,7 +1131,7 @@ record State : Set where
     f  : FunDump
 \end{code}
 Note that, unlike in the standard presentation of SECD Machines which we saw in
-chapter ?, here the state does not include the code. This is because we are
+chapter 4, here the state does not include the code. This is because we are
 aiming for a version of SECD with typed assembly code. We will define code next
 \subsection{Typing relation}
 Since we aim to have typed assembly, we have to take a different approach to
@@ -1423,8 +1423,6 @@ induction, as in certain places we will need to make references to the semantics
 of other types, and vice versa. The order of the following definitions is
 arbitrary from the point of view of correctness and was chosen purely for
 improving readability.
-
-We start by giving semantics to the types of our machine,
 \begin{code}
 mutual
   ⟦_⟧ᵗ : Type → Set
@@ -1436,7 +1434,7 @@ mutual
 \end{code}
 Here we realized the machine types as the corresponding types in Agda. The
 exception is the type of functions, which we realize as a closure. The meaning
-of \D{Closure} will be defined at a later moment.
+of \D{Closure} will be defined at a later moment in the mutual block.
 
 We proceed by giving semantics to the environment,
 \begin{code}
@@ -1460,8 +1458,8 @@ Next, we define the semantics of the function dump,
 \end{code}
 Since the type of the function dump technically permits also non-function types
 in it, we have to handle them here by simply saying that they may not be
-realized. There is, however, no instruction which would allow putting a
-non-function type in the dump.
+present in the function dump being realized. There is, after all, no instruction
+which would allow putting a non-function type in the dump.
 
 Now finally for the definition of \D{Closure}, we define it as a record
 containing the code of the function, a realization of the starting environment,
