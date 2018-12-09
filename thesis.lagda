@@ -1191,9 +1191,15 @@ returned value. The final state has the number $5$ on the stack.
 \chapter{Formalization}
 In this chapter, we approach the main topic of this thesis. We formalize a
 SECD machine in Agda, with typed syntax, and then proceed to define the
-semantics by way of coinduction. Finally, we define a typed λ calculus,
-corresponding exactly to the capabilities of the SECD machine, and define a
-compilation procedure from this calculus to typed SECD programs.
+semantics by way of coinduction. By typed syntax we mean an approach to SECD
+code which performs static verification of the code in question. For example,
+the \I{add} instruction is only allowed when two integers are provably on the
+top of stack, and a function can only access values from the environment if the
+function in question states so in advance in its type.
+
+Finally, we define a typed λ calculus, corresponding exactly to the capabilities
+of the SECD machine, and define a compilation procedure from this calculus to
+typed SECD programs.
 
 \section{Syntax}
 \subsection{Preliminaries}
@@ -1202,7 +1208,7 @@ formalizing the type system.
 
 We define the data type \AgdaDatatype{Path}, parametrized by a binary relation,
 whose values are finite sequences of values such that each value is in relation
-with the next.
+with the next one.
 \begin{code}
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
   ∅     : ∀ {a} → Path R a a
@@ -1212,23 +1218,24 @@ data Path {A : Set} (R : A → A → Set) : A → A → Set where
 infixr 5 _>>_
 \end{code}
 The first constructor creates an empty path. The second takes an
-already-existing path and prepends to it a value, given a proof that this value
+already existing path and prepends to it a value, given a proof that this value
 is in relation with the first element of the already-existing path. The reader
-may notice a certain similarity to linked lists; indeed if for the relation we
-take the universal one for our data type \AgdaDatatype{A}, we stand to obtain a
-type that's isomorphic to linked lists.
+may notice certain similarity to linked lists; indeed if for the relation we
+take the universal relation for \AgdaDatatype{A}, we obtain a type that is
+isomorphic to linked lists.
 
 We can view this type as the type of finite paths through a graph connected
 according to the binary relation.
 
 We also define a shorthand for constructing the end of a path out of two edges.
-We will use this in examples later on.
+We use this in examples later on.
 \begin{code}
 _>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
 a >| b = a >> b >> ∅
 \end{code}
 Furthermore, we can also concatenate two paths, given that the end of the first
-path connects to the start of the second one.
+path connects to the start of the second one. This is enforced by the type
+system of Agda.
 \begin{code}
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 ∅        >+> r  = r
@@ -1239,14 +1246,14 @@ infixr 4 _>+>_
 \end{code}
 \subsection{Machine types}
 \label{secd_types}
-We start by defining the atomic constants our machine will recognize. We limit
+We start by defining the atomic constants our machine operates on. We limit
 ourselves to booleans and integers.
 \begin{code}
 data Const : Set where
   bool  : Bool → Const
   int   : ℤ → Const
 \end{code}
-Next, we define which types our machine recognizes.
+Next, we define an Agda data type which captures the machine's types.
 \begin{code}
 data Type : Set where
   intT boolT  : Type
@@ -1261,7 +1268,7 @@ Firstly, there are types corresponding to the constants we have already defined
 above. Then, we also introduce a product type and a list type. Finally, there is
 the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 
-Now we define the type assignment of constants.
+Now, we define the type assignment of constants.
 \begin{code}
 typeof : Const → Type
 typeof (bool _)  = boolT
@@ -1288,16 +1295,21 @@ record State : Set where
     e  : Env
     f  : FunDump
 \end{code}
-Note that, unlike in the standard presentation of SECD Machines which we saw in
+Note that, unlike in the standard presentation of SECD Machines, which we saw in
 chapter 4, here the state does not include the code. This is because we are
-aiming for a version of SECD with typed assembly code. We will define code next
-\subsection{Typing relation}
-Since we aim to have typed assembly, we have to take a different approach to
-defining code. We will define a binary relation which will determine how a state of
-a certain shape is mutated following the execution of an instruction.
+aiming for a version of SECD with typed assembly code: code will be defined in
+the next subsection as a binary relation on states.
+\subsection{Syntax}
+Since we aim to have typed code, we have to take a different approach to
+defining code. We will define a binary relation that determines how a state of
+a certain \textit{shape} is mutated following the execution of an instruction.
+By shape, we mean the types present in the separate components of the state.
+Using pattern matching, we are able to put certain restrictions on these, e.g.
+we can require that preceding a certain instruction, an integer must be on the
+top of the stack.
 
-We will have two versions of this relation: first one is the single-step
-relation, the second one is the transitive closure of the first one using
+We will have two versions of this relation: the first is the single-step
+relation, the second is the reflexive and transitive closure of the first using
 \D{Path}.
 \begin{code}
 infix 5 ⊢_⊳_
@@ -1311,7 +1323,7 @@ mutual
   ⊢_↝_ : State → State → Set
   ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ s₁ s₂
 \end{code}
-Here there is nothing surprising, we use \D{Path} to define the multi-step
+There is nothing surprising here, we use \D{Path} to define the multi-step
 relation.
 
 Next, we define the single-step relation. As mentioned before, this relation
@@ -1319,7 +1331,7 @@ captures how one state might change into another.
 \begin{code}
   data ⊢_⊳_ : State → State → Set where
 \end{code}
-Here we must define all the instructions our machine should handle. We will start
+Here we must define all the instructions our machine should handle. We start
 with the simpler ones.
 \begin{code}
     ldc  : ∀ {s e f}
@@ -1328,7 +1340,7 @@ with the simpler ones.
 \end{code}
 Instruction \I{ldc} loads a constant which is embedded in it. It poses no
 restrictions on the state of the machine and mutates the state by pushing the
-constant on the stack.
+type of constant on the stack.
 \begin{code}
     ld   : ∀ {s e f a}
          → (a ∈ e)
@@ -1343,21 +1355,24 @@ environment.
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
 \end{code}
 The \I{ldf} instruction is considerably more involved. It loads a function of
-the type \A{a} \I{⇒} \A{b} and puts it on the stack. Note how we use the multi-step
-relation here. In addition, the code we are loading also has to be of a certain
-shape to make it a function: the argument it was called with must be put in the
-environment, and the function dump is to be extended with the type of the
-function to permit recursive calls to itself.
+the type \A{a}~\I{⇒}~\A{b}, given as an argument, and puts it on the stack. In
+addition, the code we are loading also has to be of a certain shape to make it a
+function: it starts with the empty stack and finishes with a single value of
+type \A{b} (being returned) on the stack, the argument of type \A{a} it was
+called with must be put in the environment, and the function dump is to be
+extended with the type of the function itself to permit recursive calls in the
+function body. Note that we use the multi-step relation here to describe the
+type of the code.
 
 Once a function is loaded, we may apply it,
 \begin{code}
     ap   : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
 \end{code}
-\I{ap} requires that a function and its argument are on the stack. After it has
-run, the returning value from the function will be put on the stack in their
-stead. The type of this instruction is fairly simple; the difficult part awaits
-us further on in implementation.
+The instruction \I{ap} requires that a function and its argument are on the
+stack. After it has run, the returned value from the function will be put on the
+stack in their stead. The type of this instruction is fairly simple, the
+difficult part awaits us further on in the implementation.
 \begin{code}
     rtn  : ∀ {s e a b f}
          → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
@@ -1372,11 +1387,11 @@ Next, let us look at recursive calls.
          → (a ⇒ b ∈ f)
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
 \end{code}
-\I{ldr} loads a function for recursive application from the function dump. We
-can be many scopes deep in the function and we use a De Bruijn index here to
-count the scopes, same as we do with the environment. This is important e.g. for
-curried functions where we want to be able to load the topmost function, not one that
-was already partially applied.
+The instruction \I{ldr} loads a function for a recursive application from the
+function dump. We can be many scopes deep in the function and we use a De Bruijn
+index here to count the scopes, same as we do with the environment. This is
+important, e.g., for curried functions where we want to be able to load the
+topmost function, not one that was already partially applied.
 \begin{code}
     rap  : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
@@ -1389,11 +1404,12 @@ implementation, as this one will attempt to perform tail call elimination.
          → ⊢ s # e # f ↝ s' # e # f
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e # f
 \end{code}
-The if instruction requires that a boolean value be present on the stack. Based
-on this, it decides which branch to execute. Here we hit on one limitation of
-the typed presentation: both branches must finish with a stack of the same
-shape, otherwise it would be unclear what the stack looks like after this
-instruction.
+The \I{if} instruction requires that a boolean value is present on the top of
+the stack. Based on this value, it decides which branch to execute. Here we hit
+on one limitation of the typed presentation: both branches must finish with a
+stack of the same shape, otherwise it would be unclear what the stack looks like
+after this instruction and static verification of the typed code could not
+proceed.
 
 The remaining instructions are fairly simple in that they only manipulate the
 stack. Their types are outlined in Figure~\ref{instypes}.
@@ -1450,7 +1466,7 @@ stack. Their types are outlined in Figure~\ref{instypes}.
     nt   : ∀ {s e f}
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
 \end{code}
-\subsubsection{Derived instructions}
+\subsection{Derived instructions}
 For the sake of sanity we will also define what amounts to simple programs,
 masquerading as instructions, for use in more complex programs later. The chief
 limitation here is that since these are members of the multi-step relation, we
@@ -1466,11 +1482,12 @@ loadList (x ∷ xs)  = loadList xs >+> ldc (int (+ x)) >| cons
 \end{code}
 The first one is simply the check for an empty list. The second one is more
 interesting, it constructs a sequence of instructions which will load a list of
-natural numbers.
+natural numbers. Note that the constructor \I{+\_} is used to construct a
+positive Agda integer from a natural number.
 \subsection{Examples}
 \label{syntax_tests}
-In this section we present some examples of SECD programs in our current
-formalism. Starting with trivial ones, we will work our way up to using full
+In this section, we present some examples of SECD programs in our current
+formalism. Starting with trivial ones, we work our way up to using full
 capabilities of the machine.
 
 The first example loads two constants and adds them.
@@ -1492,13 +1509,13 @@ inc =
  >> add
  >| rtn
 \end{code}
-Here we can see the type of the expression getting more complicated: we use
-polymorphism to make make sure we can load this function in any environment, in
-the environment we have to declare that an argument of type \I{intT} is
-expected, and lastly the function dump has to be expanded with the type of this
+Here, we can see the type of the expression getting more complicated. We use
+polymorphism to make sure we can load this function in any environment. In the
+type of the environment, we have to declare that an argument of type \I{intT} is
+expected, and the function dump has to be extended with the type of this
 function.
 
-In the next example we load the above function and apply it to the integer 2.
+In the next example, we load the above function and apply it to the integer 2.
 \begin{code}
 inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
@@ -1518,21 +1535,21 @@ In the next example we test partial application.
   >> ldc (int (+ 2))
   >| ap
 \end{code}
-First we construct a function which constructs a function which adds the two
-values in the environment. The types of these two are inferred to be integers by
-Agda, as this is what the \I{add} instruction requires. Then, we load an apply
-the constant 1. This results in another function, partially applied. Lastly, we
-load 2 and apply.
+First we construct a function which constructs a function which adds two topmost
+values from the environment. The types of these two values are inferred to be
+integers by Agda, as this is what the \I{add} instruction requires. Then, we
+load and apply the constant \AgdaNumber{1}. This results in another function,
+partially applied. Lastly, we load \AgdaNumber{2} and apply.
 
-In the example \F{inc} we saw how we could define a function. In the next
-example we also construct a function, however this time we embed the instruction
+In the example \F{inc}, we saw how we could define a function. In the next
+example we also construct a function. However, this time we embed the instruction
 \I{ldf} in our definition directly, as this simplifies the type considerably.
 \begin{code}
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
 \end{code}
 The only consideration is that when we wish to use this function in another
-program, rather than writing \I{ldf} \F{plus} we must only write \F{plus}.
+program, rather than writing \I{ldf} \F{plus}, we must only write \F{plus}.
 
 Lastly, a more involved example: that of a folding function. Here we test all
 capabilities of the machine.
@@ -1560,15 +1577,16 @@ load the list \F{𝟎} and obtain it's first element with \I{head}. We apply to 
 already partially-applied folding function, yielding the new accumulator on the
 top of the stack.
 
-Now we need to make the recursive call: we load ourselves with \I{ldr} \F{𝟐}.
-Next we need to apply all three arguments: we start with loading the folding
-function \F{𝟐} and applying it. We are now in a state where the partially
-applied foldl is on the top of the stack and the new accumulator is right below
-it; we flip\footnote{Note we could have reorganized the instructions in a manner
-  so that this flip would not be necessary, indeed we will see that there is no
-  need for this instruction in section~\ref{compilation}} the two and apply.
-Lastly, we load the list \F{𝟎}, drop the first element with \I{tail} and perform
-recursive application with tail-call elimination.
+Now we need to make the recursive call: we load the function \F{foldl} itself
+with \I{ldr} \F{𝟐}. Next we need to apply all three arguments: we start with
+loading the folding function \F{𝟐} and applying it. We are now in a state where
+the partially applied \F{foldl} is on the top of the stack and the new
+accumulator is right below it; we flip\footnote{Note we could have reorganized
+  the instructions in a manner so that this flip would not be necessary. Indeed,
+  we will see that there is no need for this instruction in
+  section~\ref{compilation}} the two and apply. Lastly, we load the list \F{𝟎},
+drop the first element with \I{tail} and perform the recursive application with
+tail-call elimination.
 \section{Semantics}
 Having defined the syntax, we can now turn to semantics. In this section, we
 will give operational semantics to the SECD machine syntax defined in the
