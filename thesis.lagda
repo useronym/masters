@@ -255,7 +255,7 @@ dependendly typed programming and theorem proving in Agda.
 Due to the presence of dependent types, all functions defined must be provably
 terminating. Failure to do so would result in type-checking becoming
 undecidable. However, this does not mean the loss of Turing-completeness; indeed
-we will see in section \ref{coinduction} how possibly non-terminating
+we will see in section~\ref{coinduction} how possibly non-terminating
 computations can still be expressed, with some help from the type system.
 
 Agda has strong support for mixfix operators\footnote{Operators which can have
@@ -512,7 +512,7 @@ certain difficulties further on. Instead, we shall use the concept commonly
 referred to as De Bruijn indices\parencite{de1972lambda}. These replace variable
 names with natural numbers, where each number $n$ refers to the variable bound
 by the binder $n$ positions above the current scope in the syntactical tree. Some
-examples of this naming scheme are shown in Figure \ref{debruijn}.
+examples of this naming scheme are shown in Figure~\ref{debruijn}.
 \begin{figure}[h]
   \centering
   \begin{tabular}{ l l }
@@ -975,10 +975,10 @@ The notation $e(x)$ refers to the value in environment $e$ bound under the
 identifier $x$.
 
 To see how the basic instructions and the addition instruction transform the
-machine state, please refer to Figure \ref{secd}.
+machine state, please refer to Figure~\ref{secd}.
 
 To see an example of execution of the machine, please refer to Figure
-\ref{secdexample}.
+~\ref{secdexample}.
 
 It is usual to use De Bruijn indices when referring to identifiers in the
 \texttt{ld} instruction. E.g. \texttt{ld 0} loads the topmost value in the
@@ -1118,7 +1118,7 @@ FunDump  = List Type
 For now, these only store the information regarding the types of the values in
 the machine. Later, when defining semantics, we will give realizations to these,
 similarly to how we handled contexts in the formalization of Simply Typed λ
-Calculus in \ref{lambda_semantics}.
+Calculus in~\ref{lambda_semantics}.
 
 Finally, we define the state as a record storing the stack, environment, and the
 function dump.
@@ -1238,7 +1238,7 @@ shape, otherwise it would be unclear what the stack looks like after this
 instruction.
 
 The remaining instructions are fairly simple in that they only manipulate the
-stack. Their types are outlined in Figure \ref{instypes}.
+stack. Their types are outlined in Figure~\ref{instypes}.
 \begin{figure}[h]
   \centering
   \begin{tabular}{L | L | L}
@@ -1408,7 +1408,7 @@ function \F{𝟐} and applying it. We are now in a state where the partially
 applied foldl is on the top of the stack and the new accumulator is right below
 it; we flip\footnote{Note we could have reorganized the instructions in a manner
   so that this flip would not be necessary, indeed we will see that there is no
-  need for this instruction in section \ref{compilation}} the two and apply.
+  need for this instruction in section~\ref{compilation}} the two and apply.
 Lastly, we load the list \F{𝟎}, drop the first element with \I{tail} and perform
 recursive application with tail-call elimination.
 \section{Semantics}
@@ -1417,7 +1417,7 @@ will give operational semantics to the SECD machine syntax defined in the
 previous section.
 
 \subsection{Types}
-We begin, similarly to how we handled the semantics in \ref{lambda_semantics},
+We begin, similarly to how we handled the semantics in~\ref{lambda_semantics},
 by first giving semantics to the types. Here we have to proceed by mutual
 induction, as in certain places we will need to make references to the semantics
 of other types, and vice versa. The order of the following definitions is
@@ -1653,7 +1653,7 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
 This approach also has the advantage of being able to use the instruction
 \I{rap} indiscriminately instead of \I{ap} in all situations, at the cost of
 delaying the execution slightly. However, as we will see in Section
-\ref{compilation}, this is hardly necessary.
+~\ref{compilation}, this is hardly necessary.
 
 Next we have the \I{rtn} instruction which simply drops all items from the stack
 but the topmost one. Once again, we have no guarantee that there are no more
@@ -1710,9 +1710,9 @@ runℕ c n = runFor n
     (x , _) ← run ⋅ ⋅ ⋅ c
     now x
 \end{code}
-Here we made use of \F{runFor} defined in Section \ref{delay_monad}.
+Here we made use of \F{runFor} defined in Section~\ref{delay_monad}.
 
-Now for the promised tests, we will evaluate the examples from \ref{syntax_tests}.
+Now for the promised tests, we will evaluate the examples from~\ref{syntax_tests}.
 \begin{code}
 _ : runℕ 2+3 0 ≡ just (+ 5)
 _ = refl
@@ -1748,7 +1748,7 @@ As a final step, we will define a typed (though inconsistent) λ calculus and
 implement compilation to typed SECD instructions defined in previous sections.
 
 \subsection{Syntax}
-We will reuse the types defined in Section \ref{secd_types}. This will not only
+We will reuse the types defined in Section~\ref{secd_types}. This will not only
 make compilation cleaner, but also makes sense from a moral standpoint: we want
 our λ calculus to model the capabilities of our SECD machine. Hence, a context
 is a list of (SECD) types,
@@ -1757,7 +1757,7 @@ Ctx = List Type
 \end{code}
 As for the typing relation, we use a similar trick as with SECD to allow
 recursive calls. We keep two contexts, \A{Γ} for tracking assumptions, as in
-\ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
+~\ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
 recursively.
 \begin{code}[hide]
 infix 2 _×_⊢_
@@ -1768,7 +1768,7 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
   ƛ_   : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_  : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
 \end{code}
-The first three typing rules resemble closely the ones from \ref{lambda_syntax},
+The first three typing rules resemble closely the ones from~\ref{lambda_syntax},
 with the addition of the function context \A{Ψ}.
 
 Next, we have a variation of \I{var} for loading functions from \A{Ψ},
