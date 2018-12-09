@@ -175,7 +175,7 @@ avoid paradoxes present in the Untyped λ Calculus~\parencite{church1932set},
 which was found to be inconsistent by Kleene and
 Rosser~\parencite{kleene1935inconsistency}. The Untyped λ calculus was introduced
 as a universal model of computation, a point at which it succeeded, as it is
-equivalent in strength to a Turing machine~\parencite{turing1937computability}.
+equivalent in strength Turing machines~\parencite{turing1937computability}.
 \subsection{Curry-Howard Correspondence}
 It was later observed by Howard that the Simply Typed λ Calculus (STLC) could be
 viewed as a language for construction of proofs in Natural
@@ -243,7 +243,7 @@ this proposition.
 Agda~\parencite{norell2007towards} is a functional programming language with
 first-class support for dependent types. As per the Curry-Howard correspondence,
 well-typed programs in Agda can also be understood as proofs of inhabitance of
-their correspoinding types; types being understood as propositions.
+their corresponding types; types being understood as propositions.
 
 This section is meant as a crash-course in Agda syntax, not semantics. In other
 words, those not familiar with dependently typed programming languages and/or
@@ -252,30 +252,50 @@ topic. See~\parencite{friedman2018little} for an introduction to dependent types
 as a whole, or~\parencite{stump2016verified} for an in-depth introduction to
 dependendly typed programming and theorem proving in Agda.
 \section{Overview}
-Due to the presence of dependent types, all functions defined must be provably
-terminating. Failure to do so would result in type-checking becoming
-undecidable. However, this does not mean the loss of Turing-completeness; indeed
-we will see in section~\ref{coinduction} how possibly non-terminating
-computations can still be expressed, with some help from the type system.
+Due to the presence of dependent types, functions defined in Agda must be by
+default\footnote{This restriction can be lifted, however it is at the user's own
+risk.} provably terminating. Failure to do so would result in type-checking
+becoming undecidable. However, this does not cause the loss of
+Turing-completeness; indeed we will see in section~\ref{coinduction} how
+possibly non-terminating computations can still be expressed, with some help
+from the type system.
 
-Agda has strong support for mixfix operators\footnote{Operators which can have
+Agda has strong support for mixfix operators\footnote{Operators that can have
   multiple name parts and are infix, prefix, postfix, or
   closed~\parencite{mixfix}.} and Unicode identifiers. This often allows for
-developing a notation close to what one has come to expect in mathematics.
+developing a notation close to what one has come to expect in mathematics. For
+example, the following is valid Agda syntax:
+\begin{code}[hide]
+kek : Set₁
+kek = Set
+
+module HiddenSyntax where
+  infix 10 _,_
+  infix 10 _⇒_
+  postulate
+    α β Γ : Set
+    _⊢_ _⇒_ _,_ : Set → Set → Set
+\end{code}
+\begin{code}
+    MP : ∀ {Γ α β} → α , Γ ⊢ β
+                    ---------
+                   → Γ ⊢ α ⇒ β
+\end{code}
 However, with great power comes great responsibility and one should be careful
-to not abuse the notation too much, a problem exacerbated by the fact that
+not to abuse the notation too much, a problem exacerbated by the fact that
 operator overloading, as used excessively in mathematics, is not directly
 possible.
 
 As an aside, there is also some support for proof automation in
-Agda~\parencite{auto}, however from the author's experience the usability of this
+Agda~\parencite{auto}, however from the author's experience, the usability of this
 tool is limited to simple cases. In contrast with tools such as
-Coq~\parencite{barras1997coq}, Agda suffers from lower degree of automation: there are no
-built-in tactics, though their implementation is possible through
-reflection~\parencite{agda-manual}.
+Coq~\parencite{barras1997coq}, Isabelle~\parencite{nipkow2002isabelle}, or
+ACL2~\parencite{kaufmann1996acl2}, Agda suffers from a lower degree of
+automation: there are no built-in tactics, though their implementation is
+possible through reflection~\parencite{agda-manual}.
 \subsection{Trivial Types}
-A type which is trivially inhabited by a single value, This
-type is often refered to as \textit{Top} or \textit{Unit}. In Agda,
+A type that is trivially inhabited by a single value is often refered to as
+\textit{Top} or \textit{Unit}. In Agda,
 \begin{code}
 data ⊤ : Set where
   ⋅ : ⊤
@@ -284,8 +304,8 @@ declares the new data type \AgdaDatatype{⊤} which is itself of type
 \AgdaPrimitiveType{Set}\footnote{For the reader familiar with the Haskell type
   system, the Agda type $Set$ is akin to the Haskell kind \textit{Star}. Agda has
   a stratified hierarchy of universes, where $Set$ itself is of the type $Set_1$, and
-  so on.}. The second line declared a constructor for this type, here called
-simply \AgdaInductiveConstructor{⋅}, which constructs a value of type
+  so on.}. The second line declares a value constructor for this type, here
+called simply \AgdaInductiveConstructor{⋅}, which constructs a value of type
 \AgdaDatatype{⊤}\footnote{Again for the Haskell-able, note how the syntax here
   resembles that of Haskell with the extension \texttt{GADTs}.}.
 
@@ -294,14 +314,17 @@ The dual of \AgdaDatatype{⊤} is the trivially uninhabited type, often called
 \begin{code}
 data ⊥ : Set where
 \end{code}
-Note how there are no constructors declared for this type, therefore it is
-clearly uninhabited.
+Note that there are no constructors declared for this type. Due to the inner
+workings of Agda, this guarantees us an inhabited type.
 
 The empty type also allows us to define the negation of a proposition,
 \begin{code}
 ¬_ : Set → Set
 ¬ P = P → ⊥
 \end{code}
+Here we also see for the first time the notation for mixfix operators. Note the
+underscore \texttt{\_} in the name declaration of this function: it symbolizes
+where the argument is to be expected.
 \subsection{Booleans}
 A step-up from the trivially inhabited type \AgdaDatatype{⊤}, the type of
 booleans is made up of two distinct values.
@@ -309,24 +332,21 @@ booleans is made up of two distinct values.
 data Bool : Set where
   tt ff : Bool
 \end{code}
-Since both constructors have the same type signature, we took advantage of a
+Since both constructors have the same type signature, we take advantage of a
 feature in Agda that allows us to declare such constructors on one line,
 together with the shared type.
 
-We can also declare our first function now, one that will perform negation of
-Boolean values.
+Now we can declare a function that will perform negation of Boolean values,
 \begin{code}
 not : Bool → Bool
 not tt = ff
 not ff = tt
 \end{code}
-Here we utilized pattern matching to split on the argument and
-flipped one into the other. Note the underscore \texttt{\_} in the name declaration of this
-function: it symbolizes where the argument is to be expected and declares it as
-a mixfix operator.
+Here we utilize pattern matching to split on the argument and transform each
+boolean value into the opposite.
 
 Another function we can define is the conjunction of two boolean values, using a
-similar approach.
+similar approach,
 \begin{code}
 _∧_ : Bool → Bool → Bool
 tt ∧ b = b
@@ -343,13 +363,37 @@ record _×_ (A : Set) (B : Set) : Set where
     proj₂ : B
 \end{code}
 \begin{code}[hide]
+open _×_
 infixr 4 _,_
+
+module HiddenProducts where
 \end{code}
-Here we declared a new record type, parametrized by two other types,
+Here we declare a new record type, parametrized by two other types,
 \AgdaArgument{A} and \AgdaArgument{B}. These are the types of the values stored
 in the pair, which we construct with the operator
-\AgdaInductiveConstructor{\_,\_}. We also declare the fixity of this operator to
-be right-associative.
+\AgdaInductiveConstructor{\_,\_}.
+
+As an example, we can create a pair of two boolean values,
+\begin{code}
+  _ : Bool × Bool
+  _ = tt , ff
+\end{code}
+Here we see another use of the underscore: we can use it as a placeholder in the
+stead of an identifier. This is useful in situations where we wish to give some
+example we won't be using in the future.
+
+To showcase the use of projections, we can define an uncurried version of
+\F{\_∧\_} as a function from products of two boolean values,
+\begin{code}
+  conj : Bool × Bool → Bool
+  conj r = proj₁ r ∧ proj₂ r
+\end{code}
+In practice, however, it is often less cumbersome to instead employ pattern
+matching together with the constructor syntax in order to de-structure a record,
+\begin{code}
+  conj' : Bool × Bool → Bool
+  conj' (a , b) = a ∧ b
+\end{code}
 \subsection{Natural numbers}
 To see a more interesting example of a type, let us consider the type of natural numbers. These can be implemented using Peano encoding, as shown below.
 \begin{code}[hide]
@@ -360,10 +404,10 @@ module Hidden where
     zero  : ℕ
     suc   : ℕ → ℕ
 \end{code}
-Here we have a nullary constructor for the value zero, and then a unary
-constructor which corresponds to the successor function. As an example, consider the
-number 3, which would be encoded as~\AgdaInductiveConstructor{suc(suc(suc\
-  zero))}.
+Here we have a nullary constructor for the value zero, and then a unary value
+constructor, which corresponds to the successor function. As an example,
+consider the number 3, which would be encoded
+as~\AgdaInductiveConstructor{suc(suc(suc\ zero))}.
 
 As an example of a function on the naturals, let us define the addition function.
 \begin{code}
@@ -372,19 +416,19 @@ As an example of a function on the naturals, let us define the addition function
   suc a + b  = suc (a + b)
 \end{code}
 We proceed by induction on the left argument: if that number is zero, the result
-is simply the right argument. If the left argument is a successor to some number
+is simply the right argument. If the left argument is a successor of some number
 \AgdaArgument{a}, we inductively perform addition of \AgdaArgument{a} to
-\AgdaArgument{b}, and then apply the successor function.
+\AgdaArgument{b}, and then apply the successor function to the result.
 \section{Propositional Equality}
-In this section, we will take a short look at one of the main features of
+In this section, we take a short look at one of the main features of
 intuitionistic type theory, namely, the identity type. This type allows us to
 state the proposition that two values of some data type are \textit{equal}. The
 meaning of \textit{equal} here is that both of the values are convertible to the
 same value through reductions. This is the concept of propositional equality.
-Compare this with definitional equality, which only allows us to express
-when two values have the same syntactic representation. For example,
-definitionaly it holds that $2=2$, however, $1+1=2$ only holds propositionaly,
-because a reduction is required on the left-hand side.
+Compare this with definitional equality, which only allows us to express when
+two values have the same syntactic representation. For example, definitionaly it
+holds that $2=2$, however, $1+1=2$ only holds propositionaly, because a
+reduction is required on the left-hand side.
 
 We can define propositional equality in Agda as follows.
 \begin{code}
@@ -437,7 +481,7 @@ TODO: If this is to be kept here, explain.
 A different concept of equality is that of \textit{Decidable equality}. This is
 a form of equality that, unlike Propositional equality, can be decided
 programatically. We define this equality as a restriction of propositional
-equality to those comparisons which are decidable. Firstly, we will need the
+equality to those comparisons that are decidable. Firstly, we need the
 definition of a decidable relation.
 \begin{code}
 data Dec (R : Set) : Set where
@@ -497,7 +541,7 @@ a ≟ℤ b with a ≟ℤ' b
         ⊥⊥ ()
 \end{code}
 \section{Formalizing Type Systems}
-In what follows, we will take a look at how we can use Agda to formalize
+In what follows, we take a look at how we can use Agda to formalize
 deductive systems. We will take the simplest example there is, the Simply Typed
 λ Calculus. Some surface-level knowledge of this calculus is assumed.
 
