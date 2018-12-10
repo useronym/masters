@@ -1,5 +1,5 @@
 AGDA=agda
-AFLAGS=-i. --latex --only-scope-checking
+AFLAGS=-i. --latex #--only-scope-checking
 SOURCE=thesis
 POSTPROCESS=postprocess-latex.pl
 LATEX=latexmk -pdf -use-make -xelatex

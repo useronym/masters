@@ -257,7 +257,7 @@ Due to the presence of dependent types, functions defined in Agda must be by
 default\footnote{This restriction can be lifted, however it is at the user's own
 risk.} provably terminating. Failure to do so would result in type-checking
 becoming undecidable. However, this does not cause the loss of
-Turing-completeness; indeed we will see in section~\ref{coinduction} how
+Turing-completeness; indeed in section~\ref{coinduction} we present how
 possibly non-terminating computations can still be expressed, with some help
 from the type system.
 
@@ -733,9 +733,11 @@ eventually reach some value,
   Reaches xs a = Σ ℕ (λ n → atˢ n xs ≡ a)
 \end{code}
 Hence, the Collatz conjecture can be stated as follows:
+\begin{code}[hide]
+  postulate
+\end{code}
 \begin{code}
-  conjecture : ∀ n → Reaches (collatz n) 0
-  conjecture n = {!!}
+    conjecture : ∀ n → Reaches (collatz n) 0
 \end{code}
 The proof is left as a challenge to the reader.
 \subsection{The Delay Monad}
@@ -813,7 +815,7 @@ open import Data.Integer using (+_; _+_; _-_; _*_)
 
 \chapter{Formalizing Type Systems}
 In what follows, we take a look at how we can use Agda to formalize
-deductive systems and/or typed calculi. We will concern ourselves with the
+deductive systems and/or typed calculi. We concern ourselves with the
 simplest example there is, the Simply Typed λ Calculus.
 
 Deductive systems are formal languages which allow the statement and proof of
@@ -881,7 +883,7 @@ that our element \A{x} is in a list, we can extend the list with some other
 element \A{a} and \A{x} will still be present in the new list.
 
 As a few examples of elements of \D{\_∈\_} consider the following shorthands
-that we will be using in examples further on.
+that we use in examples further on.
 \begin{code}
 𝟎 : ∀ {A} {x : A} {xs : List A} → x ∈ (x ∷ xs)
 𝟎 = here
@@ -971,8 +973,8 @@ calculus — there is no polymorphism in the calculus itself.
 
 The advantage of this presentation is that only well-typed syntax is
 representable. Thus, whenever we work with a term of our calculus, it is
-guaranteed to be well-typed, which often simplifies things. We will see an
-example of this in what follows.
+guaranteed to be well-typed, which often simplifies things. We see an
+example of this in the next subsection.
 \subsection{Semantics by Embedding into Agda}
 \label{lambda_semantics}
 Now that we have defined the syntax, the next step is to give it semantics. We
@@ -1301,14 +1303,14 @@ aiming for a version of SECD with typed assembly code: code will be defined in
 the next subsection as a binary relation on states.
 \subsection{Syntax}
 Since we aim to have typed code, we have to take a different approach to
-defining code. We will define a binary relation that determines how a state of
+defining code. We define a binary relation that determines how a state of
 a certain \textit{shape} is mutated following the execution of an instruction.
 By shape, we mean the types present in the separate components of the state.
 Using pattern matching, we are able to put certain restrictions on these, e.g.
 we can require that preceding a certain instruction, an integer must be on the
 top of the stack.
 
-We will have two versions of this relation: the first is the single-step
+We have two versions of this relation: the first is the single-step
 relation, the second is the reflexive and transitive closure of the first using
 \D{Path}.
 \begin{code}
@@ -1467,7 +1469,7 @@ stack. Their types are outlined in Figure~\ref{instypes}.
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
 \end{code}
 \subsection{Derived instructions}
-For the sake of sanity we will also define what amounts to simple programs,
+For the sake of sanity we also define what amounts to simple programs,
 masquerading as instructions, for use in more complex programs later. The chief
 limitation here is that since these are members of the multi-step relation, we
 have to be mindful when using them and use concatenation of paths, \F{\_>+>\_}, as
@@ -1583,7 +1585,7 @@ loading the folding function \F{𝟐} and applying it. We are now in a state whe
 the partially applied \F{foldl} is on the top of the stack and the new
 accumulator is right below it; we flip\footnote{Note we could have reorganized
   the instructions in a manner so that this flip would not be necessary. Indeed,
-  we will see that there is no need for this instruction in
+  later we see that there is no need for this instruction in
   section~\ref{compilation}} the two and apply. Lastly, we load the list \F{𝟎},
 drop the first element with \I{tail} and perform the recursive application with
 tail-call elimination.
@@ -1595,7 +1597,7 @@ previous section.
 \subsection{Types}
 We begin, similarly to how we handled the semantics in~\ref{lambda_semantics},
 by first giving semantics to the types. Here we have to proceed by mutual
-induction, as in certain places we will need to make references to the semantics
+induction, as in certain places we need to make references to the semantics
 of other types, and vice versa. The order of the following definitions is
 arbitrary from the point of view of correctness and was chosen purely for
 improving readability.
@@ -1667,7 +1669,7 @@ referenced in the definition of \D{Closure}, making it necessary for it to be in
 the mutual definition block.
 
 \subsection{Auxiliary functions}
-In order to proceed with giving semantics to SECD execution, we will first need
+In order to proceed with giving semantics to SECD execution, we first need
 a few auxiliary functions to lookup values from the environment and from the
 function dump.
 
@@ -1730,7 +1732,7 @@ Here we say that in order to execute the code
   \D {⊢}\ s\ \I{\#}\ e\ \I{\#}\ f\ \D{↝}\ s'\ \I{\#}\ e'\ \I{\#}\ f'
 \]
 we require realizations of the stack \A{s}, environment \A{e}, and function dump
-\A{f}. We will return the stack the code stops execution in, wrapped in the
+\A{f}. We return the stack the code stops execution in, wrapped in the
 \D{Delay} monad in order to allow for non-structurally inductive calls that will
 be necessary in some cases.
 
@@ -1796,7 +1798,7 @@ extended with the closure being evaluated in order to allow recursive calls.
 Once the call to \F{run} has returned, we grab the first item on the stack \A{b}
 and resume execution of the rest of the run \A{r} with \A{b} put on the stack.
 
-We will now handle recursive tail calls, i.e. the instruction \I{rap}. We need
+We now handle recursive tail calls, i.e. the instruction \I{rap}. We need
 to make an additional case split here on the rest of the run \A{r}, as a tail
 call can really only occur if \I{rap} is the last instruction in the current
 run. However, there is no syntactic restriction which would prevent more
@@ -1828,7 +1830,7 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
 \end{code}
 This approach also has the advantage of being able to use the instruction
 \I{rap} indiscriminately instead of \I{ap} in all situations, at the cost of
-delaying the execution slightly. However, as we will see in Section
+delaying the execution slightly. However, as we discover in Section
 ~\ref{compilation}, this is hardly necessary.
 
 Next we have the \I{rtn} instruction which simply drops all items from the stack
@@ -1888,7 +1890,7 @@ runℕ c n = runFor n
 \end{code}
 Here we made use of \F{runFor} defined in Section~\ref{delay_monad}.
 
-Now for the promised tests, we will evaluate the examples from~\ref{syntax_tests}.
+Now for the promised tests, we evaluate the examples from~\ref{syntax_tests}.
 \begin{code}
 _ : runℕ 2+3 0 ≡ just (+ 5)
 _ = refl
@@ -1899,8 +1901,9 @@ _ = refl
 _ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
 \end{code}
-So far, so good! Now for something more complicated, we will \F{foldl} the list
-$[1,2,3,4]$ with \F{plus}. Below we have the code to achieve this,
+So far, so good! Now for something more complicated, we \F{foldl} the list
+$[1,2,3,4]$ with \F{plus} with the initial accumulator \AgdaNumber{0}. Below we
+have the code to achieve this,
 \begin{code}
 foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 foldTest =
@@ -1920,11 +1923,11 @@ _ = refl
 \end{code}
 \section{Compilation from a higher-level language}
 \label{compilation}
-As a final step, we will define a typed (though inconsistent) λ calculus and
+As a final step, we define a typed (though inconsistent) λ calculus and
 implement compilation to typed SECD instructions defined in previous sections.
 
 \subsection{Syntax}
-We will reuse the types defined in Section~\ref{secd_types}. This will not only
+We reuse the types defined in Section~\ref{secd_types}. This will not only
 make compilation cleaner, but also makes sense from a moral standpoint: we want
 our λ calculus to model the capabilities of our SECD machine. Hence, a context
 is a list of (SECD) types,
