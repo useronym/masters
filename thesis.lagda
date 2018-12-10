@@ -79,6 +79,7 @@
 \newunicodechar{ᵈ}{\ensuremath{^d}}
 \newunicodechar{ᶜ}{\ensuremath{^c}}
 \newunicodechar{★}{\ensuremath{\mathnormal\star}}
+\newunicodechar{＋}{\ensuremath{\mathnormal+}}
 \newcommand{\A}{\AgdaArgument}
 \newcommand{\D}{\AgdaDatatype}
 \newcommand{\I}{\AgdaInductiveConstructor}
@@ -620,7 +621,7 @@ about the proof and simply ask whether the two values are equal or not,
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Data.Integer using (ℤ)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ'_)
-open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
+open import Data.List using (List; []; [_]; _∷_; null; all; length)
 import Relation.Nullary as N
 import Data.Empty as E
 
@@ -674,7 +675,7 @@ numbers: it is clearly infinite. In some functional languages, such as Haskell,
 this can be expressed as a lazily constructed list. Agda, however, being total,
 does not allow for such a construction directly: an infinite data structure is
 clearly not inductively construable. It is, however, observable: as with a
-regular list, we can peek at it's head \AgdaField{hd}, and we can drop the head
+regular list, we can peek at its head \AgdaField{hd}, and we can drop the head
 and look at the tail \AgdaField{tl} of the stream.
 
 To capture this in Agda, we define a record with these projections and mark it
@@ -845,7 +846,7 @@ runFor (suc _) (now x)    = just x
 runFor (suc n) (later x)  = runFor n (force x)
 \end{code}\end{minipage}
 This idiom is useful for executing some computation which periodically offers
-it's environment the chance to interrupt the computation, or proceed further on.
+its environment the chance to interrupt the computation, or proceed further on.
 
 \D{Delay} is also a monad, with the unit operator being \I{now} and bind given
 below,
@@ -1151,7 +1152,11 @@ e.g.~\parencite{graham1989secd, secdchip}.
 
 This chapter is meant as an intuitive overview of the formalism. We present
 the machine with the standard call-by-value semantics, following the original
-presentation by Landin~\parencite{landin1964mechanical}.
+presentation by Landin~\parencite{landin1964mechanical}. At the
+end of this chapter we also present an extension of the machine with a
+\textit{function} dump, which, to the best knowledge of the author, is a novel
+concept. This extension is crucial for the formalization of SECD with typed code
+in the next chapter.
 \section{Definition}
 The machine operates by executing instructions stored as a linked list, referred
 to as the control. Each instruction has the ability to change the machine state.
@@ -1186,7 +1191,7 @@ modifying the state of the machine as necessary. The basic instructions are:
     value on the stack. Function application consists of popping the closure and
     value from the stack, dumping the current context onto the dump, emptying the
     stack, installing the closure's environment together with the argument, and
-    finally loading the closure's code into the control unit;
+    finally loading the closure's code into the control register;
   \item \texttt{rtn} -- return from a function, restoring the context from the
     function dump.
 \end{itemize}
@@ -1229,11 +1234,6 @@ environment and puts it on the stack. Hence, De Bruijn indices are used in the
 example in this chapter. They will also be used in the following chapter in the
 Agda formalization.
 
-To see an example of execution of the machine, please refer to Figure
-~\ref{secdexample}. This example loads a function, the number $1$, and performs
-application of the loaded function, turned closure, to the number. The closure
-increments its argument by one. After the closure returns, $3$ is added to the
-returned value. The final state has the number $5$ on the stack.
 \begin{figure}[h]
   \centering
   \begin{tabular}{L | L | L | L}
@@ -1257,6 +1257,59 @@ returned value. The final state has the number $5$ on the stack.
       rtn}$.}
   \label{secdexample}
 \end{figure}
+To see an example of execution of the machine, please refer to Figure
+~\ref{secdexample}. This example loads a function, the number $1$, and performs
+application of the loaded function, turned closure, to the number. The closure
+increments its argument by one. After the closure returns, $3$ is added to the
+returned value. The final state has the number $5$ on the stack.
+
+\section{Recursion}
+An attentive reader may notice that the above presentation does not give an
+obvious way of implementing recursive functions. The issue is that after
+execution of the instruction \texttt{ap}, the closure being applied is not
+retrievable. In practice, this may be resolved by storing the function on the
+stack that is then pushed onto the dump, and reconstructing the closure with the
+corresponding environment from the dump when needed.
+
+The additional instructions introduced in this section are summarized in
+Figure~\ref{secd_extra}.
+
+\subsection{Function dump}
+We propose a dedicated register for storing the closure being applied. Referred
+to as the \textit{function dump}, the closure being applied is pushed onto this
+register during the instruction \texttt{ap}. With the instruction \texttt{rtn},
+the topmost closure is then popped from the function dump and execution proceeds
+as normal. The advantages of this approach consist of: (1) better isolation of
+components of the machine, leading to a simpler description and formalization,
+and (2) the fact that the closure does not need to be reconstructed from the
+code of the function and the corresponding environment.
+
+We also introduce the instruction \texttt{ldr} for loading closures from the
+function dump. It behaves analogously to the instruction \texttt{ld}, with the
+difference that \texttt{ld} serves for retrieving values from the environment,
+whereas \texttt{ldr} retrieves closures from the function dump.
+
+\begin{figure}[h]
+  \centering
+  \begin{tabular}{L | L | L | L | L || L | L | L | L | L}
+    \toprule
+    \multicolumn{5}{c||}{Before} & \multicolumn{5}{c}{After} \\[2mm]
+    \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c}{F} & \multicolumn{1}{c||}{D} & \multicolumn{1}{c}{S'} & \multicolumn{1}{c}{E'} & \multicolumn{1}{c}{C'} & \multicolumn{1}{c}{F'} & \multicolumn{1}{c}{D'} \\
+    \midrule
+    s              & e & \texttt{ldr x}\ , c & f & d & f(x) , s & e    & c  & f & d \\
+    x , c'[e'] , s & e & \texttt{rap}\ , c   & f & d & ∅        & x,e' & c' & f & d \\
+    \bottomrule
+  \end{tabular}
+  \caption{The above table presents the additional instructions from this
+    section. The capital letter F stands for the function dump.}
+  \label{secd_extra}
+\end{figure}
+
+\subsection{Tail call optimization}
+Another consideration is the elimination of tail calls. The standard
+approach~\parencite{modernsecd} is to introduce a new instruction \texttt{rap}
+which behaves similarly to \texttt{ap}, with the modification that it does not
+bother pushing a return frame onto the dump.
 
 \chapter{Formalization}
 In this chapter, we approach the main topic of this thesis. We formalize a
@@ -1267,9 +1320,9 @@ the \I{add} instruction is only allowed when two integers are provably on the
 top of stack, and a function can only access values from the environment if the
 function in question states so in advance in its type.
 
-Finally, we define a typed λ calculus, corresponding exactly to the capabilities
-of the SECD machine, and define a compilation procedure from this calculus to
-typed SECD programs.
+Finally, we define a typed λ calculus, corresponding to the capabilities of the
+SECD machine, and define a compilation procedure from this calculus to typed
+SECD programs.
 
 \section{Syntax}
 \subsection{Preliminaries}
@@ -1366,7 +1419,7 @@ similarly to how we handled contexts in the formalization of Simply Typed λ
 Calculus in~\ref{lambda_semantics}.
 
 Finally, we define the state as a record storing the stack, environment, and the
-function dump.
+function dump. Note that we do not formalize the dump register.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 record State : Set where
@@ -1650,12 +1703,42 @@ plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
 The only consideration is that when we wish to use this function in another
 program, rather than writing \I{ldf} \F{plus}, we must only write \F{plus}.
 
+For an example of a recursive function, consider that of a mapping function,
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
+map : ∀ {e f a b} →
+      ⊢ [] # e # f ⊳ [ (a ⇒ b) ⇒ listT a ⇒ listT b ] # e # f
+map = ldf (ldf body >| rtn)
+  where
+  body =
+           ld 𝟎
+        >> nil?
+        >+> if (nil >| rtn)
+            (ldr 𝟎 >> ld 𝟎 >> tail >> ap
+            >> ld 𝟏 >> ld 𝟎 >> head >> ap
+            >| cons)
+        >> ∅
+\end{code}\end{minipage}
+
+Here we first load the list we are mapping over. We check for emptiness, if the
+argument is empty we return the empty list. In the case that it is not, we need
+to make a recursive call. We use a trick: we load \F{map} already partially
+applied with the first argument, i.e., the mapping function, with the call
+\I{ldr} \F{𝟎}. Then we load the list with \I{ld} \F{𝟎}, obtain its \I{head}, and
+apply. Result is the rest of the list already mapped over.
+
+Now to map over the first element, we load the mapping function with \I{ld}
+\F{𝟏}. Then we retrieve the first element of the list — similarly as we did
+above, only this time we use \I{head} — and apply. Result is the newly mapped
+element on the top of the stack and the rest of the transformed list below it:
+we \I{cons} the two.
+
 Lastly, a more involved example: that of a folding function. Here we test all
 capabilities of the machine.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
-foldl : ∀ {e f a b} → ⊢ [] # e # f
-                      ⊳ [ ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b) ] # e # f
+foldl : ∀ {e f a b} →
+        ⊢ [] # e # f ⊳ [ ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b) ] # e # f
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
   where
     body =
@@ -1669,11 +1752,11 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
         >> ld 𝟎 >> tail >| rap)
       >> ∅
 \end{code}\end{minipage}
-Here is what's going on: to start, we load the list we are folding. We check
+To start, we load the list we are folding. We check
 whether it is empty: if so, the accumulator \F{𝟏} is loaded and returned. On the other
 hand, if the list is not empty, we start with loading the folding function \F{𝟐}.
-Next, we load the accumulator \F{𝟏}. We perform partial application. Next, we
-load the list \F{𝟎} and obtain it's first element with \I{head}. We apply to the
+Next, we load the accumulator \F{𝟏}. We perform partial application. Then, we
+load the list \F{𝟎} and obtain its first element with \I{head}. We apply to the
 already partially-applied folding function, yielding the new accumulator on the
 top of the stack.
 
@@ -2044,7 +2127,27 @@ And indeed,
 _ : runℕ foldTest 28 ≡ just (+ 10)
 _ = refl
 \end{code}\end{minipage}
-\section{Compilation from a higher-level language}
+As a final test let us examine the mapping function \F{map}, employed here to
+increment each element of its argument,
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
+mapTest : ⊢ [] # [] # [] ↝ [ listT intT ] # [] # []
+mapTest =
+     map
+  >> plus
+  >> ldc (int (+ 1))
+  >> ap
+  >> ap
+  >> loadList (1 ∷ 2 ∷ 3 ∷ [])
+  >+> ap
+  >> ∅
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
+_ : runℕ mapTest 13 ≡ just ((+ 2) ∷ (+ 3) ∷ (+ 4) ∷ [])
+_ = refl
+\end{code}\end{minipage}
+\section{Compilation from a high-level language}
 \label{compilation}
 As a final step, we define a typed (though inconsistent) λ calculus and
 implement compilation to typed SECD instructions defined in previous sections.
@@ -2093,8 +2196,8 @@ Finally, we have the integers and some primitive operations on them,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   #_   : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
-  _∗_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
-  _–_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
+  _＋_ _∗_ _–_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
+                         → Ψ × Γ ⊢ intT
 \end{code}\end{minipage}
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
@@ -2107,7 +2210,8 @@ infixl 5 _–_
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
 #⁺ n = # (+ n)
 \end{code}\end{minipage}
-We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals.
+We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals into
+\F{#\_}.
 
 As an example, consider the factorial function in this formalism,
 
@@ -2146,6 +2250,7 @@ mutual
     compile t >+> if (compile a) (compile b) >> ∅
   compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
   compile (# x)                = ldc (int x) >> ∅
+  compile (a ＋ b)             = compile b >+> compile a >+> add >> ∅
   compile (a ∗ b)              = compile b >+> compile a >+> mul >> ∅
   compile (a – b)              = compile b >+> compile a >+> sub >> ∅
 \end{code}\end{minipage}
@@ -2154,14 +2259,14 @@ adjusted for readability.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : compile {s = []} fac ≡ ldf (
-     ldc (int (+ 1)) >> ld here >> eq?
-  >| if (ldc (int (+ 1)) >| rtn) (
-           ldr here
+     ldc (int (+ 1)) >> ld 𝟎 >> eq?
+  >| if (ldc (int (+ 1)) >| rtn)
+        (ldr 𝟎
         >> ldc (int (+ 1))
-        >> ld here
+        >> ld 𝟎
         >> sub
         >> ap
-        >> ld here
+        >> ld 𝟎
         >> mul
         >| rtn)
   ) >> ∅
