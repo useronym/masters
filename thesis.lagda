@@ -2075,6 +2075,32 @@ The only interesting cases here are \I{head} and \I{tail} when called on an
 empty list. In this case, we signal an error by terminating the execution,
 returning instead an infinitely delayed value with \F{never}.
 
+\subsection{A note regarding function application}
+There is one final remark to be said regarding the above implementation of the
+semantics. We have not captured the concept of the dump as introduced first in
+Chapter 5. Rather, we have exploited the Agda calls stack for the dump's
+purposes. The instruction in question is function application \I{ap}, where we
+use a \AgdaKeyword{do} block in which we launch execution of the closure using a
+recursive call to \F{run}. We then use the result thus obtained to proceed with
+execution. In other words, Agda call stack serves as our function dump.
+
+The reason for this approach is twofold. Firstly, this simplifies the
+formalization slightly, as we avoided having to formalize the dump register. The
+second reason is more serious: there is no simple approach to extending the
+above formalization with the dump register. This is due to the typed syntax of
+code. When writing some typed code, we must treat the \I{ap} instruction as
+having completed in one step; the next instruction after \I{ap} must already
+have access to the result of the function application in question, pretending
+that the function has already returned. However, when implementing the
+semantics, we need to perform all the instructions between the execution of
+\I{ap} and the return from the function with \I{rtn}. The types do not align
+here: in syntax, we only care about the type of the return value of \I{ap},
+whereas in semantics we must also perform all the work of the function before
+returning.
+
+In other words, it appears that there is no simple way to extend the above
+approach to also formalize the dump register. This is however an interesting
+problem that may be worthy of future considerations.
 \subsection{Tests}
 Being done with the trickiest part, we now define an auxiliary function for use
 in tests. It takes some code which starts from an empty initial state. In
@@ -2127,8 +2153,8 @@ And indeed,
 _ : runℕ foldTest 28 ≡ just (+ 10)
 _ = refl
 \end{code}\end{minipage}
-As a final test let us examine the mapping function \F{map}, employed here to
-increment each element of its argument,
+Let us also examine the mapping function \F{map}, employed here to
+increment each element of the list $[1,2,3]$ by $1$,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 mapTest : ⊢ [] # [] # [] ↝ [ listT intT ] # [] # []
@@ -2149,8 +2175,8 @@ _ = refl
 \end{code}\end{minipage}
 \section{Compilation from a high-level language}
 \label{compilation}
-As a final step, we define a typed (though inconsistent) λ calculus and
-implement compilation to typed SECD instructions defined in previous sections.
+As a final step, we define a typed λ calculus and implement compilation to typed
+SECD instructions defined in previous sections.
 
 \subsection{Syntax}
 We reuse the types defined in Section~\ref{secd_types}. This will not only
@@ -2161,10 +2187,10 @@ is a list of (SECD) types,
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 Ctx = List Type
 \end{code}\end{minipage}
-As for the typing relation, we use a similar trick as with SECD to allow
-recursive calls. We keep two contexts, \A{Γ} for tracking assumptions, as in
-~\ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
-recursively.
+As for the typing relation, we use a similar trick as with the SECD function
+dump to allow recursive calls. We keep two contexts, \A{Γ} for tracking
+assumptions, as in ~\ref{lambda_syntax}, and \A{Ψ} for tracking types of
+functions we can call recursively.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infix 2 _×_⊢_
@@ -2211,7 +2237,7 @@ infixl 5 _–_
 #⁺ n = # (+ n)
 \end{code}\end{minipage}
 We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals into
-\F{#\_}.
+\I{\#\_}.
 
 As an example, consider the factorial function in this formalism,
 
@@ -2242,19 +2268,19 @@ mutual
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α
                         → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
-  compile (var x)              = ld x >> ∅
-  compile (ƛ t)                = ldf (compileT t) >> ∅
-  compile (f $ x)              = compile f >+> compile x >+> ap >> ∅
-  compile (rec x)              = ldr x >> ∅
+  compile (var x)  = ld x >> ∅
+  compile (ƛ t)    = ldf (compileT t) >> ∅
+  compile (f $ x)  = compile f >+> compile x >+> ap >> ∅
+  compile (rec x)  = ldr x >> ∅
   compile (if t then a else b) =
     compile t >+> if (compile a) (compile b) >> ∅
-  compile (a == b)             = compile b >+> compile a >+> eq? >> ∅
-  compile (# x)                = ldc (int x) >> ∅
-  compile (a ＋ b)             = compile b >+> compile a >+> add >> ∅
-  compile (a ∗ b)              = compile b >+> compile a >+> mul >> ∅
-  compile (a – b)              = compile b >+> compile a >+> sub >> ∅
+  compile (a == b)  = compile b >+> compile a >+> eq? >> ∅
+  compile (# x)     = ldc (int x) >> ∅
+  compile (a ＋ b)  = compile b >+> compile a >+> add >> ∅
+  compile (a ∗ b)   = compile b >+> compile a >+> mul >> ∅
+  compile (a – b)   = compile b >+> compile a >+> sub >> ∅
 \end{code}\end{minipage}
-We can now compile the above definition of \F{fac}. Below is the result,
+We now compile the above definition of \F{fac}. Below is the result,
 adjusted for readability.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -2273,7 +2299,7 @@ _ : compile {s = []} fac ≡ ldf (
 _ = refl
 \end{code}\end{minipage}
 
-As a final test, we can apply the function \F{fac} to the number 5, compile the
+As a final test, we apply the function \F{fac} to the number 5, compile the
 expression, and evaluate it on the SECD,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
