@@ -726,8 +726,8 @@ For example, observe the sequence starting from the number $12$,
       ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ 0 ∷ []
   _ = refl
 \end{code}
-Using a dependent product, we can express the predicate that a stream will
-eventually reach some value,
+As an aside, using a dependent product, we can express the predicate that a
+stream will eventually reach some value,
 \begin{code}
   Reaches : ∀ {A} → Stream A → A → Set
   Reaches xs a = Σ ℕ (λ n → atˢ n xs ≡ a)
