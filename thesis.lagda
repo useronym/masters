@@ -229,7 +229,7 @@ which would hopefully be self-evident.
 
 \subsection{Inhabitance}
 An important concept is that of inhabitance of some type. An inhabited type is a
-type which is non-empty, i.e. there are some values of this type. This is
+type which is non-empty, i.e., there are some values of this type. This is
 synonymous with the proposition this type corresponds to being provable, hence
 the values of some type are sometimes called witnesses to (the provability of)
 this proposition.
@@ -456,7 +456,7 @@ We can define propositional equality in Agda as follows.
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
 \end{code}\end{minipage}
-The curly braces denote an implicit argument, i.e. an argument that is to be
+The curly braces denote an implicit argument, i.e., an argument that is to be
 inferred by the type-checker. The equality type is polymorphic in this
 underlying type, \AgdaArgument{A}.
 
@@ -1177,7 +1177,7 @@ modifying the state of the machine as necessary. The basic instructions are:
 \begin{itemize}
   \item \texttt{ld x} -- load the value bound to the identifier \texttt{x} from
     the environment and put it on the stack;
-  \item \texttt{ldf f} -- load the function — i.e. a sequence of instructions —
+  \item \texttt{ldf f} -- load the function — i.e., a sequence of instructions —
     \texttt{f} in the current environment, constructing a \textit{closure}, and put it on the
     stack. A Closure is therefore a list of instructions together with an
     environment it can be executed in;
@@ -1220,7 +1220,7 @@ machine state, please refer to Figure~\ref{secd}.
   \caption{The above table presents the transition relation of the SECD Machine.
   On the left is the state of the machine before the execution of a single
   instruction. On the right is the newly mutated state. The components are read
-  from left to right, i.e. the top is the leftmost value.}
+  from left to right, i.e., the top is the leftmost value.}
   \label{secd}
 \end{figure}
 It is usual to use De Bruijn indices when referring to identifiers in the
@@ -1527,7 +1527,7 @@ stack. Their types are outlined in Figure~\ref{instypes}.
     \bottomrule
   \end{tabular}
   \caption{Instructions implementing primitive operations and their associated
-    types, i.e. their manipulations of the stack.}
+    types, i.e., their manipulations of the stack.}
   \label{instypes}
 \end{figure}
 
@@ -1844,7 +1844,7 @@ we require realizations of the stack \A{s}, environment \A{e}, and function dump
 \D{Delay} monad in order to allow for non-structurally inductive calls that will
 be necessary in some cases.
 
-We proceed by structural induction on the last argument, i.e. the code. We start
+We proceed by structural induction on the last argument, i.e., the code. We start
 with the empty run,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -1912,7 +1912,7 @@ extended with the closure being evaluated in order to allow recursive calls.
 Once the call to \F{run} has returned, we grab the first item on the stack \A{b}
 and resume execution of the rest of the run \A{r} with \A{b} put on the stack.
 
-We now handle recursive tail calls, i.e. the instruction \I{rap}. We need
+We now handle recursive tail calls, i.e., the instruction \I{rap}. We need
 to make an additional case split here on the rest of the run \A{r}, as a tail
 call can really only occur if \I{rap} is the last instruction in the current
 run. However, there is no syntactic restriction which would prevent more
