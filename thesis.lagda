@@ -160,7 +160,7 @@ albeit not under the moniker of normalization by evaluation
 ~\parencite{abel2013normalization}.
 
 \section{Type Theory}
-Type theory was first introduced by Whitehead and Russell in 1910 in their
+Type theory was first introduced by Russell and Whitehead in 1910 in their
 transformational work Principia Mathematica~\parencite{whitehead1912principia} as
 a response to Russell's discovery of inconsistency of naïve set
 theory~\parencite{frege1982philosophical} in 1901. In type theory, every
@@ -266,6 +266,7 @@ Agda has strong support for mixfix operators\footnote{Operators that can have
   closed~\parencite{mixfix}.} and Unicode identifiers. This often allows for
 developing a notation close to what one has come to expect in mathematics. For
 example, the following is valid Agda syntax:
+
 \begin{code}[hide]
 kek : Set₁
 kek = Set
@@ -277,11 +278,11 @@ module HiddenSyntax where
     α β Γ : Set
     _⊢_ _⇒_ _,_ : Set → Set → Set
 \end{code}
-\begin{code}
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     MP : ∀ {Γ α β} → α , Γ ⊢ β
                     ---------
                    → Γ ⊢ α ⇒ β
-\end{code}
+\end{code}\end{minipage}
 However, with great power comes great responsibility and one should be careful
 not to abuse the notation too much, a problem exacerbated by the fact that
 operator overloading, as used excessively in mathematics, is not directly
@@ -297,10 +298,11 @@ possible through reflection~\parencite{agda-manual}.
 \subsection{Trivial Types}
 A type that is trivially inhabited by a single value is often refered to as
 \textit{Top} or \textit{Unit}. In Agda,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data ⊤ : Set where
   ⋅ : ⊤
-\end{code}
+\end{code}\end{minipage}
 declares the new data type \AgdaDatatype{⊤} which is itself of type
 \AgdaPrimitiveType{Set}\footnote{For the reader familiar with the Haskell type
   system, the Agda type $Set$ is akin to the Haskell kind \textit{Star}. Agda has
@@ -312,57 +314,64 @@ called simply \AgdaInductiveConstructor{⋅}, which constructs a value of type
 
 The dual of \AgdaDatatype{⊤} is the trivially uninhabited type, often called
 \textit{Bottom} or \textit{Empty}. Complete definition in Agda follows.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data ⊥ : Set where
-\end{code}
+\end{code}\end{minipage}
 Note that there are no constructors declared for this type. Due to the inner
 workings of Agda, this guarantees us an inhabited type.
 
 The empty type also allows us to define the negation of a proposition,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 ¬_ : Set → Set
 ¬ P = P → ⊥
-\end{code}
+\end{code}\end{minipage}
 Here we also see for the first time the notation for mixfix operators. Note the
 underscore \texttt{\_} in the name declaration of this function: it symbolizes
 where the argument is to be expected.
 \subsection{Booleans}
 A step-up from the trivially inhabited type \AgdaDatatype{⊤}, the type of
 booleans is made up of two distinct values.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data Bool : Set where
   tt ff : Bool
-\end{code}
+\end{code}\end{minipage}
 Since both constructors have the same type signature, we take advantage of a
 feature in Agda that allows us to declare such constructors on one line,
 together with the shared type.
 
 Now we can declare a function that will perform negation of Boolean values,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 not : Bool → Bool
 not tt = ff
 not ff = tt
-\end{code}
+\end{code}\end{minipage}
 Here we utilize pattern matching to split on the argument and transform each
 boolean value into the opposite.
 
 Another function we can define is the conjunction of two boolean values, using a
 similar approach,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _∧_ : Bool → Bool → Bool
 tt ∧ b = b
 ff ∧ _ = ff
-\end{code}
+\end{code}\end{minipage}
+
 \subsection{Products}
 To define the product type, it is customary to use a record. This will give us
 implicit projection functions from the type.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 record _×_ (A : Set) (B : Set) : Set where
   constructor _,_
   field
     proj₁ : A
     proj₂ : B
-\end{code}
+\end{code}\end{minipage}
 \begin{code}[hide]
 open _×_
 infixr 4 _,_
@@ -375,47 +384,53 @@ in the pair, which we construct with the operator
 \AgdaInductiveConstructor{\_,\_}.
 
 As an example, we can create a pair of two boolean values,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _ : Bool × Bool
   _ = tt , ff
-\end{code}
+\end{code}\end{minipage}
 Here we see another use of the underscore: we can use it as a placeholder in the
 stead of an identifier. This is useful in situations where we wish to give some
 example we won't be using in the future.
 
 To showcase the use of projections, we can define an uncurried version of
 \F{\_∧\_} as a function from products of two boolean values,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   conj : Bool × Bool → Bool
   conj r = proj₁ r ∧ proj₂ r
-\end{code}
+\end{code}\end{minipage}
 In practice, however, it is often less cumbersome to instead employ pattern
 matching together with the constructor syntax in order to de-structure a record,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   conj' : Bool × Bool → Bool
   conj' (a , b) = a ∧ b
-\end{code}
+\end{code}\end{minipage}
 \subsection{Natural numbers}
 To see a more interesting example of a type, let us consider the type of natural numbers. These can be implemented using Peano encoding, as shown below.
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 module Hidden where
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   data ℕ : Set where
     zero  : ℕ
     suc   : ℕ → ℕ
-\end{code}
+\end{code}\end{minipage}
 Here we have a nullary constructor for the value zero, and then a unary value
 constructor, which corresponds to the successor function. As an example,
 consider the number 3, which would be encoded
 as~\AgdaInductiveConstructor{suc(suc(suc\ zero))}.
 
 As an example of a function on the naturals, let us define the addition function.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _+_ : ℕ → ℕ → ℕ
   zero + b   = b
   suc a + b  = suc (a + b)
-\end{code}
+\end{code}\end{minipage}
 We proceed by induction on the left argument: if that number is zero, the result
 is simply the right argument. If the left argument is a successor of some number
 \AgdaArgument{a}, we inductively perform addition of \AgdaArgument{a} to
@@ -432,13 +447,15 @@ holds that $2=2$, however $1+1=2$ only holds propositionally, because a
 reduction is required on the left-hand side.
 
 We can define propositional equality in Agda as follows.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   data _≡_ {A : Set} : A → A → Set where
     refl : {x : A} → x ≡ x
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Relation.Binary.PropositionalEquality using (_≡_; refl)
-\end{code}
+\end{code}\end{minipage}
 The curly braces denote an implicit argument, i.e. an argument that is to be
 inferred by the type-checker. The equality type is polymorphic in this
 underlying type, \AgdaArgument{A}.
@@ -452,13 +469,14 @@ establishing definitional equality between the two values.
 
 Unlike in axiomatic treatments of equivalence, symmetry and transitivity of
 \AgdaDatatype{\_≡\_} are theorems in Agda:
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 sym : {A : Set} {a b : A} → a ≡ b → b ≡ a
 sym refl = refl
 
 trans : {A : Set} {a b c : A} → a ≡ b → b ≡ c → a ≡ c
 trans refl refl = refl
-\end{code}
+\end{code}\end{minipage}
 By pattern-matching on the proofs of equality we force Agda to unify the
 variables \A{a}, \A{b}, and \A{c}. This is possible because there are no other
 conditions on the variables here. In more complex situations, Agda may fail to perform
@@ -468,17 +486,20 @@ unified, we are \textit{de facto} constructing a proof of \A{a} \D{≡} \A{a}, w
 we do with the \I{refl} constructor.
 
 Finally, let us see the promised proof of $1+1=2$,
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 module Hidden2 where
   open import Data.Nat using (zero; suc; _+_)
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   1+1≡2 : 1 + 1 ≡ 2
   1+1≡2 = refl
-\end{code}
+\end{code}\end{minipage}
 The proof is trivial, as $1+1$ reduces directly to two. A more interesting proof
 would be that of associativity of addition,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   +-assoc : ∀ {a b c} → a + (b + c) ≡ (a + b) + c
   +-assoc {zero}   = refl
   +-assoc {suc a}  = let a+[b+c]≡[a+b]+c = +-assoc {a}
@@ -486,7 +507,7 @@ would be that of associativity of addition,
     where ≡-cong : {A B : Set} {a b : A}
                    → (f : A → B) → a ≡ b → f a ≡ f b
           ≡-cong f refl = refl
-\end{code}
+\end{code}\end{minipage}
 Here we proceed by induction on the variable \A{a}, which is given as an
 implicit argument: hence in the definition we surround the argument by curly
 braces in order to be able to access it. We have no need for the arguments \A{b}
@@ -531,45 +552,52 @@ A strengthening of the concept of propositional equality is that of
 Propositional equality, can be decided programatically. We define this equality
 as a restriction of propositional equality to those comparisons that are
 decidable. Firstly, we need the definition of a decidable relation.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data Dec (R : Set) : Set where
   yes  : R → Dec R
   no   : ¬ R → Dec R
-\end{code}
+\end{code}\end{minipage}
 This data type allows us to embed either a \I{yes} or a \I{no} answer as to
 whether \A{R} is inhabited. For example, we can state that the type \D{⊤} is
 inhabited by producing the witness \I{⋅},
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 module HiddenDec where
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _ : Dec ⊤
   _ = yes ⋅
-\end{code}
+\end{code}\end{minipage}
 and that the type \D{⊥} is not,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _ : Dec ⊥
   _ = no λ()
-\end{code}
+\end{code}\end{minipage}
 by discharging the absurd pattern by $λ()$. The constructor \I{no} takes a value
 of type \F{¬}\D{⊥}, which stands for \D{⊥} → \D{⊥}. Since the left-hand side is
 absurd, Agda allows us to conclude anything, even \D{⊥}, by this syntax.
 
 Now we can define what it means for a type to possess decidable equality,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 Decidable : (A : Set) → Set
 Decidable A = ∀ (a b : A) → Dec (a ≡ b)
-\end{code}
+\end{code}\end{minipage}
 Here we specify that for any two values of that type we must be able to produce
 an answer whether they are equal or not.
 
 As an example, let us define decidable equality for the type of Naturals. We
 also use this as an excuse to introduce the keyword \AgdaKeyword{with} which can
 be used to make a case-split on some expression,
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Data.Nat using (ℕ; zero; suc)
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _≟ℕ_ : Decidable ℕ
 zero ≟ℕ zero     = yes refl
 (suc _) ≟ℕ zero  = no λ()
@@ -579,15 +607,17 @@ zero ≟ℕ (suc _)  = no λ()
 … | no ¬m≡n   = no λ m≡n → ¬m≡n (suc-injective m≡n)
   where suc-injective : ∀ {m n} → suc m ≡ suc n → m ≡ n
         suc-injective refl = refl
-\end{code}
+\end{code}\end{minipage}
 Given a proof of equality of two values of a decidable type, we can forget all
 about the proof and simply ask whether the two values are equal or not,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 ⌊_⌋ : {A : Set} {a b : A} → Dec (a ≡ b) → Bool
 ⌊ yes p ⌋  = tt
 ⌊ no ¬p ⌋  = ff
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Data.Integer using (ℤ)
 open import Data.Integer.Properties renaming (_≟_ to _≟ℤ'_)
 open import Data.List using (List; []; [_]; _∷_; null; map; all; length)
@@ -606,7 +636,7 @@ a ≟ℤ b with a ≟ℤ' b
 … | N.no ¬p     = no λ x → ⊥⊥ (¬p x)
   where ⊥⊥ : E.⊥ → ⊥
         ⊥⊥ ()
-\end{code}
+\end{code}\end{minipage}
 
 \section{Coinduction}
 \label{coinduction}
@@ -649,18 +679,21 @@ and look at the tail \AgdaField{tl} of the stream.
 
 To capture this in Agda, we define a record with these projections and mark it
 as \AgdaKeyword{coinductive},
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Size
 open import Data.Maybe using (Maybe; just; nothing)
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 record Stream (A : Set) : Set where
   coinductive
   field
     hd  : A
     tl  : Stream A
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open Stream
 module HiddenX where
   open import Data.Nat using (⌊_/2⌋; _+_; _*_)
@@ -678,14 +711,15 @@ module HiddenX where
   atˢ : ∀ {A} → ℕ → Stream A → A
   atˢ zero xs = hd xs
   atˢ (suc n) xs = atˢ n (tl xs)
-\end{code}
+\end{code}\end{minipage}
 As an example, consider the aforementioned stream of natural numbers, starting
 from some \A{n},
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   nats : ℕ → Stream ℕ
   hd (nats n)  = n
   tl (nats n)  = nats (n + 1)
-\end{code}
+\end{code}\end{minipage}
 Here we employ a feature of Agda called copatterns. Recall that we are
 constructing a record: the above syntax says how the individual fields are
 to be realized. Note also that the argument to \F{nats} is allowed to be
@@ -694,51 +728,59 @@ forbidden in an inductive definition.
 
 Given such a stream, we may wish to observe it by peeking forward a finite
 number of times, thus producing a \D{List},
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   takeˢ : ∀ {A} → ℕ → Stream A → List A
   takeˢ zero xs     = []
   takeˢ (suc n) xs  = hd xs ∷ takeˢ n (tl xs)
-\end{code}
+\end{code}\end{minipage}
 Now we can convince ourselves that the above implementation of \F{nats} is,
 indeed, correct,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _ : takeˢ 7 (nats 0) ≡ 0 ∷ 1 ∷ 2 ∷ 3 ∷ 4 ∷ 5 ∷ 6 ∷ []
   _ = refl
-\end{code}
+\end{code}\end{minipage}
 For a more interesting example of a stream, consider the Hailstone sequence,
 with a slight modification to the single step function, given as below:
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   step : ℕ → ℕ
   step 1 = 0
   step n with even? n
   … | tt  = ⌊ n /2⌋
   … | ff  = 3 * n + 1
-\end{code}
+\end{code}\end{minipage}
 The sequence itself, then, can be given by the following definition,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   collatz : ℕ → Stream ℕ
   hd (collatz n)  = n
   tl (collatz n)  = collatz (step n)
-\end{code}
+\end{code}\end{minipage}
 For example, observe the sequence starting from the number $12$,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   _ : takeˢ 11 (collatz 12)
       ≡ 12 ∷ 6 ∷ 3 ∷ 10 ∷ 5 ∷ 16 ∷ 8 ∷ 4 ∷ 2 ∷ 1 ∷ 0 ∷ []
   _ = refl
-\end{code}
+\end{code}\end{minipage}
 As an aside, using a dependent product, we can express the predicate that a
 stream will eventually reach some value,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   Reaches : ∀ {A} → Stream A → A → Set
   Reaches xs a = Σ ℕ (λ n → atˢ n xs ≡ a)
-\end{code}
+\end{code}\end{minipage}
 Hence, the Collatz conjecture can be stated as follows:
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
   postulate
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     conjecture : ∀ n → Reaches (collatz n) 0
-\end{code}
+\end{code}\end{minipage}
 The proof is left as a challenge to the reader.
 \subsection{The Delay Monad}
 The Delay monad captures the concept of unbounded recursive calls. There are two
@@ -748,7 +790,8 @@ delayed by some indirection and \textit{might} be available later. In Agda, we
 define this as a mutual definition of an inductive and coinductive data-type as
 follows,
 \label{delay_monad}
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
   data Delay (A : Set) (i : Size) : Set where
     now    : A → Delay A i
@@ -758,7 +801,7 @@ mutual
     coinductive
     field
       force : {j : Size< i} → Delay A j
-\end{code}
+\end{code}\end{minipage}
 Here we also introduce the type \D{Size} which serves as a measure on the size
 of the delay. Note that the field \AgdaField{force} requires this to strictly
 decrease. This measure aids the Agda type-checker in verifying that a definition
@@ -766,52 +809,58 @@ is \textit{productive}, that is, some progress is made in each iteration
 of \AgdaField{force}.
 
 For any data-type we may define an infinitely delayed value,
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open ∞Delay public
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 never : ∀ {i A} → Delay A i
 never {i} = later λ where .force {j} → never {j}
-\end{code}
+\end{code}\end{minipage}
 This can be used to signal an error in execution has occurred. The implicit size
 argument has been written explicitly for the reader's sake.
 
 Here we also see for the first time the anonymous syntax for constructing
 records by copatterns. The above is synonymous with
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
   never' : ∀ {i A} → Delay A i
   never' = later ∞never'
 
   ∞never' : ∀ {i A} → ∞Delay A i
   force ∞never' = never'
-\end{code}
+\end{code}\end{minipage}
 In other words, anonymous records allow us to succintly construct codata by use
 of copatterns, without the need of writing unwieldy mutual blocks.
 
 Given a delayed value, we can attempt to retrieve it in a finite number of steps,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
 runFor zero (now x)       = just x
 runFor zero (later _)     = nothing
 runFor (suc _) (now x)    = just x
 runFor (suc n) (later x)  = runFor n (force x)
-\end{code}
+\end{code}\end{minipage}
 This idiom is useful for executing some computation which periodically offers
 it's environment the chance to interrupt the computation, or proceed further on.
 
 \D{Delay} is also a monad, with the unit operator being \I{now} and bind given
 below,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
 now x >>= f    = f x
 later x >>= f  = later λ where .force → (force x) >>= f
-\end{code}
+\end{code}\end{minipage}
 This allows us to chain delayed computations where one depends on the result of
 another.
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 open import Data.Integer using (+_; _+_; _-_; _*_)
-\end{code}
+\end{code}\end{minipage}
 
 \chapter{Formalizing Type Systems}
 In what follows, we take a look at how we can use Agda to formalize
@@ -827,8 +876,6 @@ For a more in-depth treatment of the topic of formalizing programming languages
 and programming language theory in Agda, please refer
 to~\parencite{wadler2018programming}.
 
-For a brief history of λ calculi, please refer to chapter 2.
-
 λ calculi are arguably the simplest model of computation. They almost invariably
 contain the basic concepts, which are variables, function formation, and
 function application. They come in many forms and can be adapted to model any
@@ -836,6 +883,9 @@ specific requirements we may have, e.g. resource-conscious linear
 calculi~\parencite{girard1987linear}, concurrency-oriented process
 calculi~\parencite{boudol1989towards}, or calculi modeling quantum
 computing~\parencite{van2004lambda}.
+
+For a brief history of λ calculi, please refer to chapter 2.
+
 \section{De Bruijn Indices}
 Firstly, we shall need some machinery to make our lives easier. We could use
 string literals as variable names in our system, however this would lead to
@@ -869,14 +919,16 @@ to be present in a context. Context is a collection of assumptions we are
 equipped with in a given situation. We shall assume that a context is a list of
 assumptions, as this is how contexts will be defined in the next subsection. We
 will express list membership as a new data type,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data _∈_ {A : Set} : A → List A → Set where
   here   : ∀ {x xs} → x ∈ (x ∷ xs)
   there  : ∀ {x a xs} → x ∈ xs → x ∈ (a ∷ xs)
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infix 10 _∈_
-\end{code}
+\end{code}\end{minipage}
 The first constructor says that an element is present in a list if that element
 is the head of the list. The second constructor says that if we already know
 that our element \A{x} is in a list, we can extend the list with some other
@@ -884,7 +936,8 @@ element \A{a} and \A{x} will still be present in the new list.
 
 As a few examples of elements of \D{\_∈\_} consider the following shorthands
 that we use in examples further on.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 𝟎 : ∀ {A} {x : A} {xs : List A} → x ∈ (x ∷ xs)
 𝟎 = here
 
@@ -893,14 +946,15 @@ that we use in examples further on.
 
 𝟐 : ∀ {A} {x y z : A} {xs : List A} → x ∈ (z ∷ y ∷ x ∷ xs)
 𝟐 = there (there here)
-\end{code}
+\end{code}\end{minipage}
 Now we can also define a function which, given a proof that an element is in a
 list, returns the aforementioned element,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 lookup : ∀ {A x xs} → x ∈ xs → A
 lookup {x = x} here  = x
 lookup (there w)     = lookup w
-\end{code}
+\end{code}\end{minipage}
 Now if during the construction of some λ term we find ourselves in a situation
 in which we wish to introduce a variable pointing to some assumption from the
 context, we can give a value such as \F{𝟏} to mean the second assumption in the
@@ -914,40 +968,46 @@ promised, we approach the formalization the Simply Typed λ Calculus.
 \subsection{Syntax}
 \label{lambda_syntax}
 First, we define the types for expressions in our system.
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 module Hidden3 where
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   data ★ : Set where
     τ    : ★
     _⇒_  : ★ → ★ → ★
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
   infixr 20 _⇒_
-\end{code}
+\end{code}\end{minipage}
 Here we defined an atomic type \I{τ} and a binary type constructor for
 function types. The meaning of \I{τ} is currently completely arbitrary: it will
 become concrete when giving semantics.
 
 We proceed by defining context as a list of assumptions, where every assumption
 is encoded directly by its type.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   Context : Set
   Context = List ★
-\end{code}
+\end{code}\end{minipage}
 Now we are finally able to define the deductive rules that make up the calculus,
 using De Bruijn indices as explained above.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   data _⊢_ : Context → ★ → Set where
     var  : ∀ {Γ α}   → α ∈ Γ → Γ ⊢ α
     ƛ_   : ∀ {Γ α β} → α ∷ Γ ⊢ β → Γ ⊢ α ⇒ β
     _$_  : ∀ {Γ α β} → Γ ⊢ α ⇒ β → Γ ⊢ α → Γ ⊢ β
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
   infix 4 _⊢_
   infixr 5 ƛ_
   infixl 10 _$_
-\end{code}
+\end{code}\end{minipage}
 The constructors above correspond exactly to the typing rules of the calculus.
 In the first rule we employed the data type \D{\_∈\_} implenting De Bruijn
 indices: if we can give a witness to the membership of assumption \A{α} in the
@@ -961,13 +1021,14 @@ obtain a \A{β}.
 We can see some examples now, below we hive λ terms corresponding the S and K
 combinators. In standard notation, S is defined as \texttt{λx.λy.x} and K as
 \texttt{λx.λy.λz.x z (y z)}.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   K : ∀ {Γ α β} → Γ ⊢ α ⇒ β ⇒ α
   K = ƛ ƛ (var 𝟏)
 
   S : ∀ {Γ α β γ} → Γ ⊢ (α ⇒ β ⇒ γ) ⇒ (α ⇒ β) ⇒ α ⇒ γ
   S = ƛ ƛ ƛ var 𝟐 $ var 𝟎 $ (var 𝟏 $ var 𝟎)
-\end{code}
+\end{code}\end{minipage}
 Note how we use Agda polymorphism to construct a polymorphic term of our
 calculus — there is no polymorphism in the calculus itself.
 
@@ -981,36 +1042,40 @@ Now that we have defined the syntax, the next step is to give it semantics. We
 do this in a straightforward manned by way of embedding our calculus into Agda.
 
 First, we define the semantics of types, by assigning Agda types to types in our calculus.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧★ : ★ → Set
   ⟦ τ ⟧★      = ℕ
   ⟦ α ⇒ β ⟧★  = ⟦ α ⟧★ → ⟦ β ⟧★
-\end{code}
+\end{code}\end{minipage}
 Here we choose to realize our atomic type as the type of Natural numbers. These
 are chosen for being a nontrivial type. The function type is realized as an Agda
 function type.
 
 Next, we give semantics to contexts.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧C : Context → Set
   ⟦ [] ⟧C      = ⊤
   ⟦ x ∷ xs ⟧C  = ⟦ x ⟧★ × ⟦ xs ⟧C
-\end{code}
+\end{code}\end{minipage}
 The empty context can be realized trivially by the unit type. A non-empty
 context is realized as the product of the realization of the first element
 and, inductively, a realization of the rest of the context.
 
 Now we are ready to give semantics to terms. In order to be able to proceed by
 induction with regard to the structure of the term, we must operate on open terms.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧_ : ∀ {Γ α} → Γ ⊢ α → ⟦ Γ ⟧C → ⟦ α ⟧★
-\end{code}
+\end{code}\end{minipage}
 The second argument is a realization of the context in the term, which we shall
 need for variables,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦ var here ⟧ (x , _)        = x
   ⟦ var (there x) ⟧ (_ , xs)  = ⟦ var x ⟧ xs
-\end{code}
+\end{code}\end{minipage}
 Here we case-split on the variable, in case it is zero we take the first element
 of the context, otherwise we recurse into the context until we hit zero. Note
 that the shape of the context Γ is guaranteed here to never be empty, because the
@@ -1021,22 +1086,25 @@ other words, we are allowed to pattern-match on the semantics of \A{Γ}, which i
 guaranteed to be a product of realizations of the types therein contained. This
 is an advantage of the typed syntax with De Bruijn indices, as we can never
 encounter an index which would be out of bounds with respect to the context.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦ ƛ x ⟧ γ                   = λ α → ⟦ x ⟧ (α , γ)
-\end{code}
+\end{code}\end{minipage}
 The case for lambda abstraction constructs an Agda anonymous function that takes
 as the argument a value of the corresponding type and compute the semantics for
 the lambda's body, after extending the context with the argument.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦ f $ x ⟧ γ                 = (⟦ f ⟧ γ) (⟦ x ⟧ γ)
-\end{code}
+\end{code}\end{minipage}
 Finally, to give semantics to function application, we simply perform Agda
 function application on the subexpressions, after having computed their
 semantics in the current context.
 
 Thanks to propositional equality, we can embed tests directly into Agda code and
 see whether the terms we defined above receive the expected semantics.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   Kℕ : ℕ → ℕ → ℕ
   Kℕ x _ = x
 
@@ -1048,7 +1116,7 @@ see whether the terms we defined above receive the expected semantics.
 
   _ : ⟦ S ⟧ ⋅ ≡ Sℕ
   _ = refl
-\end{code}
+\end{code}\end{minipage}
 Since this thesis can only be rendered if all the Agda code has successfully
 type-checked, the fact that the reader is currently reading this paragraph means
 the semantics functions as expected!
@@ -1211,14 +1279,16 @@ formalizing the type system.
 We define the data type \AgdaDatatype{Path}, parametrized by a binary relation,
 whose values are finite sequences of values such that each value is in relation
 with the next one.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data Path {A : Set} (R : A → A → Set) : A → A → Set where
   ∅     : ∀ {a} → Path R a a
   _>>_  : ∀ {a b c} → R a b → Path R b c → Path R a c
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infixr 5 _>>_
-\end{code}
+\end{code}\end{minipage}
 The first constructor creates an empty path. The second takes an
 already existing path and prepends to it a value, given a proof that this value
 is in relation with the first element of the already-existing path. The reader
@@ -1231,57 +1301,65 @@ according to the binary relation.
 
 We also define a shorthand for constructing the end of a path out of two edges.
 We use this in examples later on.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _>|_ : ∀ {A R} {a b c : A} → R a b → R b c → Path R a c
 a >| b = a >> b >> ∅
-\end{code}
+\end{code}\end{minipage}
 Furthermore, we can also concatenate two paths, given that the end of the first
 path connects to the start of the second one. This is enforced by the type
 system of Agda.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
 ∅        >+> r  = r
 (x >> l) >+> r  = x >> (l >+> r)
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infixr 4 _>+>_
-\end{code}
+\end{code}\end{minipage}
 \subsection{Machine types}
 \label{secd_types}
 We start by defining the atomic constants our machine operates on. We limit
 ourselves to booleans and integers.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data Const : Set where
   bool  : Bool → Const
   int   : ℤ → Const
-\end{code}
+\end{code}\end{minipage}
 Next, we define an Agda data type which captures the machine's types.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data Type : Set where
   intT boolT  : Type
   pairT       : Type → Type → Type
   listT       : Type → Type
   _⇒_         : Type → Type → Type
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infixr 15 _⇒_
-\end{code}
+\end{code}\end{minipage}
 Firstly, there are types corresponding to the constants we have already defined
 above. Then, we also introduce a product type and a list type. Finally, there is
 the function type, \AgdaInductiveConstructor{\_⇒\_}, in infix notation.
 
 Now, we define the type assignment of constants.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 typeof : Const → Type
 typeof (bool _)  = boolT
 typeof (int _)   = intT
-\end{code}
+\end{code}\end{minipage}
 Next, we define the typed stack, environment, and function dump.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 Stack    = List Type
 Env      = List Type
 FunDump  = List Type
-\end{code}
+\end{code}\end{minipage}
 For now, these only store the information regarding the types of the values in
 the machine. Later, when defining semantics, we will give realizations to these,
 similarly to how we handled contexts in the formalization of Simply Typed λ
@@ -1289,14 +1367,15 @@ Calculus in~\ref{lambda_semantics}.
 
 Finally, we define the state as a record storing the stack, environment, and the
 function dump.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 record State : Set where
   constructor _#_#_
   field
     s  : Stack
     e  : Env
     f  : FunDump
-\end{code}
+\end{code}\end{minipage}
 Note that, unlike in the standard presentation of SECD Machines, which we saw in
 chapter 4, here the state does not include the code. This is because we are
 aiming for a version of SECD with typed assembly code: code will be defined in
@@ -1313,49 +1392,55 @@ top of the stack.
 We have two versions of this relation: the first is the single-step
 relation, the second is the reflexive and transitive closure of the first using
 \D{Path}.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 infix 5 ⊢_⊳_
 infix 5 ⊢_↝_
-\end{code}
+\end{code}\end{minipage}
 Their definitions need to be mutually recursive, because certain instructions —
 defined in the single-step relation — need to refer to whole programs, a concept
 captured by the multi-step relation.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
   ⊢_↝_ : State → State → Set
   ⊢ s₁ ↝ s₂ = Path ⊢_⊳_ s₁ s₂
-\end{code}
+\end{code}\end{minipage}
 There is nothing surprising here, we use \D{Path} to define the multi-step
 relation.
 
 Next, we define the single-step relation. As mentioned before, this relation
 captures how one state might change into another.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   data ⊢_⊳_ : State → State → Set where
-\end{code}
+\end{code}\end{minipage}
 Here we must define all the instructions our machine should handle. We start
 with the simpler ones.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     ldc  : ∀ {s e f}
          → (const : Const)
          → ⊢ s # e # f ⊳ (typeof const ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 Instruction \I{ldc} loads a constant which is embedded in it. It poses no
 restrictions on the state of the machine and mutates the state by pushing the
 type of constant on the stack.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     ld   : ∀ {s e f a}
          → (a ∈ e)
          → ⊢ s # e # f ⊳ (a ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 Instruction \I{ld} loads a value of type \A{a} from the environment and puts it
 on the stack. It requires a proof that this value is, indeed, in the
 environment.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     ldf  : ∀ {s e f a b}
          → (⊢ [] # (a ∷ e) # (a ⇒ b ∷ f) ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f))
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 The \I{ldf} instruction is considerably more involved. It loads a function of
 the type \A{a}~\I{⇒}~\A{b}, given as an argument, and puts it on the stack. In
 addition, the code we are loading also has to be of a certain shape to make it a
@@ -1367,45 +1452,50 @@ function body. Note that we use the multi-step relation here to describe the
 type of the code.
 
 Once a function is loaded, we may apply it,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     ap   : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ (b ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 The instruction \I{ap} requires that a function and its argument are on the
 stack. After it has run, the returned value from the function will be put on the
 stack in their stead. The type of this instruction is fairly simple, the
 difficult part awaits us further on in the implementation.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     rtn  : ∀ {s e a b f}
          → ⊢ (b ∷ s) # e # (a ⇒ b ∷ f) ⊳ [ b ] # e # (a ⇒ b ∷ f)
-\end{code}
+\end{code}\end{minipage}
 Return is an instruction we are to use at the end of a function in order to get
 the machine state into the one required by \I{ldf}. It throws away what is on
 the stack, with the exception of the return value.
 
 Next, let us look at recursive calls.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     ldr  : ∀ {s e f a b}
          → (a ⇒ b ∈ f)
          → ⊢ s # e # f ⊳ (a ⇒ b ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 The instruction \I{ldr} loads a function for a recursive application from the
 function dump. We can be many scopes deep in the function and we use a De Bruijn
 index here to count the scopes, same as we do with the environment. This is
 important, e.g., for curried functions where we want to be able to load the
 topmost function, not one that was already partially applied.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     rap  : ∀ {s e f a b}
          → ⊢ (a ∷ a ⇒ b ∷ s) # e # f ⊳ [ b ] # e # f
-\end{code}
+\end{code}\end{minipage}
 This instruction looks exactly the same way as \I{ap}. The difference will be in
 implementation, as this one will attempt to perform tail call elimination.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     if   : ∀ {s s' e f}
          → ⊢ s # e # f ↝ s' # e # f
          → ⊢ s # e # f ↝ s' # e # f
          → ⊢ (boolT ∷ s) # e # f ⊳ s' # e # f
-\end{code}
+\end{code}\end{minipage}
 The \I{if} instruction requires that a boolean value is present on the top of
 the stack. Based on this value, it decides which branch to execute. Here we hit
 on one limitation of the typed presentation: both branches must finish with a
@@ -1440,7 +1530,8 @@ stack. Their types are outlined in Figure~\ref{instypes}.
     types, i.e. their manipulations of the stack.}
   \label{instypes}
 \end{figure}
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
     nil  : ∀ {s e f a}
          → ⊢ s # e # f ⊳ (listT a ∷ s) # e # f
     flp  : ∀ {s e f a b}
@@ -1467,21 +1558,22 @@ stack. Their types are outlined in Figure~\ref{instypes}.
          → ⊢ (a ∷ a ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
     nt   : ∀ {s e f}
          → ⊢ (boolT ∷ s) # e # f ⊳ (boolT ∷ s) # e # f
-\end{code}
+\end{code}\end{minipage}
 \subsection{Derived instructions}
 For the sake of sanity we also define what amounts to simple programs,
 masquerading as instructions, for use in more complex programs later. The chief
 limitation here is that since these are members of the multi-step relation, we
 have to be mindful when using them and use concatenation of paths, \F{\_>+>\_}, as
 necessary.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 nil? : ∀ {s e f a} → ⊢ (listT a ∷ s) # e # f ↝ (boolT ∷ s) # e # f
 nil? = nil >| eq?
 
 loadList : ∀ {s e f} → List ℕ → ⊢ s # e # f ↝ (listT intT ∷ s) # e # f
 loadList []        = nil >> ∅
 loadList (x ∷ xs)  = loadList xs >+> ldc (int (+ x)) >| cons
-\end{code}
+\end{code}\end{minipage}
 The first one is simply the check for an empty list. The second one is more
 interesting, it constructs a sequence of instructions which will load a list of
 natural numbers. Note that the constructor \I{+\_} is used to construct a
@@ -1493,16 +1585,18 @@ formalism. Starting with trivial ones, we work our way up to using full
 capabilities of the machine.
 
 The first example loads two constants and adds them.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 2+3 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 2+3 =
     ldc (int (+ 2))
  >> ldc (int (+ 3))
  >| add
-\end{code}
+\end{code}\end{minipage}
 The second example constructs a function which expects an integer and increases
 it by one before returning it.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 inc : ∀ {e f} → ⊢ [] # (intT ∷ e) # (intT ⇒ intT ∷ f)
                 ↝ [ intT ] # (intT ∷ e) # (intT ⇒ intT ∷ f)
 inc =
@@ -1510,7 +1604,7 @@ inc =
  >> ldc (int (+ 1))
  >> add
  >| rtn
-\end{code}
+\end{code}\end{minipage}
 Here, we can see the type of the expression getting more complicated. We use
 polymorphism to make sure we can load this function in any environment. In the
 type of the environment, we have to declare that an argument of type \I{intT} is
@@ -1518,15 +1612,17 @@ expected, and the function dump has to be extended with the type of this
 function.
 
 In the next example, we load the above function and apply it to the integer 2.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 inc2 : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 inc2 =
     ldf inc
  >> ldc (int (+ 2))
  >| ap
-\end{code}
+\end{code}\end{minipage}
 In the next example we test partial application.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 λTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 λTest =
      ldf
@@ -1536,7 +1632,7 @@ In the next example we test partial application.
   >> ap
   >> ldc (int (+ 2))
   >| ap
-\end{code}
+\end{code}\end{minipage}
 First we construct a function which constructs a function which adds two topmost
 values from the environment. The types of these two values are inferred to be
 integers by Agda, as this is what the \I{add} instruction requires. Then, we
@@ -1546,16 +1642,18 @@ partially applied. Lastly, we load \AgdaNumber{2} and apply.
 In the example \F{inc}, we saw how we could define a function. In the next
 example we also construct a function. However, this time we embed the instruction
 \I{ldf} in our definition directly, as this simplifies the type considerably.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 plus : ∀ {s e f} → ⊢ s # e # f ⊳ ((intT ⇒ intT ⇒ intT) ∷ s) # e # f
 plus = ldf (ldf (ld 𝟎 >> ld 𝟏 >> add >| rtn) >| rtn)
-\end{code}
+\end{code}\end{minipage}
 The only consideration is that when we wish to use this function in another
 program, rather than writing \I{ldf} \F{plus}, we must only write \F{plus}.
 
 Lastly, a more involved example: that of a folding function. Here we test all
 capabilities of the machine.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 foldl : ∀ {e f a b} → ⊢ [] # e # f
                       ⊳ [ ((b ⇒ a ⇒ b) ⇒ b ⇒ (listT a) ⇒ b) ] # e # f
 foldl = ldf (ldf (ldf body >| rtn) >| rtn)
@@ -1570,7 +1668,7 @@ foldl = ldf (ldf (ldf body >| rtn) >| rtn)
         >> flp >> ap
         >> ld 𝟎 >> tail >| rap)
       >> ∅
-\end{code}
+\end{code}\end{minipage}
 Here is what's going on: to start, we load the list we are folding. We check
 whether it is empty: if so, the accumulator \F{𝟏} is loaded and returned. On the other
 hand, if the list is not empty, we start with loading the folding function \F{𝟐}.
@@ -1601,7 +1699,8 @@ induction, as in certain places we need to make references to the semantics
 of other types, and vice versa. The order of the following definitions is
 arbitrary from the point of view of correctness and was chosen purely for
 improving readability.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
   ⟦_⟧ᵗ : Type → Set
   ⟦ intT ⟧ᵗ         = ℤ
@@ -1609,23 +1708,25 @@ mutual
   ⟦ pairT t₁ t₂ ⟧ᵗ  = ⟦ t₁ ⟧ᵗ × ⟦ t₂ ⟧ᵗ
   ⟦ a ⇒ b ⟧ᵗ        = Closure a b
   ⟦ listT t ⟧ᵗ      = List ⟦ t ⟧ᵗ
-\end{code}
+\end{code}\end{minipage}
 Here we realized the machine types as the corresponding types in Agda. The
 exception is the type of functions, which we realize as a closure. The meaning
 of \D{Closure} will be defined at a later moment in the mutual block.
 
 We proceed by giving semantics to the environment,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧ᵉ : Env → Set
   ⟦ [] ⟧ᵉ      = ⊤
   ⟦ x ∷ xs ⟧ᵉ  = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
-\end{code}
+\end{code}\end{minipage}
 The semantics of environment are fairly straightforward, we make a reference to
 the semantic function for types and inductively define the environment as a
 product of semantics of each type in it.
 
 Next, we define the semantics of the function dump,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧ᵈ : FunDump → Set
   ⟦ [] ⟧ᵈ               = ⊤
   ⟦ intT ∷ xs ⟧ᵈ        = ⊥
@@ -1633,7 +1734,7 @@ Next, we define the semantics of the function dump,
   ⟦ pairT x x₁ ∷ xs ⟧ᵈ  = ⊥
   ⟦ a ⇒ b ∷ xs ⟧ᵈ       = Closure a b × ⟦ xs ⟧ᵈ
   ⟦ listT x ∷ xs ⟧ᵈ     = ⊥
-\end{code}
+\end{code}\end{minipage}
 Since the type of the function dump technically permits also non-function types
 in it, we have to handle them here by simply saying that they may not be
 present in the function dump being realized. There is, after all, no instruction
@@ -1643,7 +1744,8 @@ Now finally for the definition of \D{Closure}, we define it as a record
 containing the code of the function, a realization of the starting environment,
 and finally a realization of the function dump, containing closures which may be
 called recursively from this closure.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   record Closure (a b : Type) : Set where
     inductive
     constructor ⟦_⟧ᶜ×⟦_⟧ᵉ×⟦_⟧ᵈ
@@ -1654,16 +1756,17 @@ called recursively from this closure.
               ↝ [ b ] # (a ∷ e) # (a ⇒ b ∷ f)
       ⟦e⟧ᵉ  : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ  : ⟦ f ⟧ᵈ
-\end{code}
+\end{code}\end{minipage}
 This concludes the mutual block of definitions.
 
 There is one more type we have not handled yet, \D{Stack}, which is not required
 to be in the mutual block above,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 ⟦_⟧ˢ : Stack → Set
 ⟦ [] ⟧ˢ      = ⊤
 ⟦ x ∷ xs ⟧ˢ  = ⟦ x ⟧ᵗ × ⟦ xs ⟧ˢ
-\end{code}
+\end{code}\end{minipage}
 The stack is realized similarly to the environment, however the environment is
 referenced in the definition of \D{Closure}, making it necessary for it to be in
 the mutual definition block.
@@ -1674,38 +1777,42 @@ a few auxiliary functions to lookup values from the environment and from the
 function dump.
 
 As for the environment, the situation is fairly simple,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 lookupᵉ : ∀ {x xs} → ⟦ xs ⟧ᵉ → x ∈ xs → ⟦ x ⟧ᵗ
 lookupᵉ (x , _) here        = x
 lookupᵉ (_ , xs) (there w)  = lookupᵉ xs w
-\end{code}
+\end{code}\end{minipage}
 Looking up values from the function dump is slightly more involved, because Agda
 doesn't let us pattern-match on the first argument as we did here. Instead, we
 must define an auxiliary function to drop the first element of the product,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
 tailᵈ {intT} ()
 tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
 tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
-\end{code}
+\end{code}\end{minipage}
 We pattern-match on the type of the value in the environment in order to get
 Agda to realize that only a realization of a function may be in the function
 dump, at which point we can pattern-match on the product that is the function
 dump and drop the first element.
 
 Now we can define the lookup operation for the function dump,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 lookupᵈ : ∀ {a b f} → ⟦ f ⟧ᵈ → a ⇒ b ∈ f → Closure a b
 lookupᵈ (x , _) here  = x
 lookupᵈ f (there w)   = lookupᵈ (tailᵈ f) w
-\end{code}
+\end{code}\end{minipage}
 dropping the elements as necessary with \F{tailᵈ} until we get to the desired
 closure.
 
 Lastly, we define a function for comparing two values of the machine,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → ⟦ boolT ⟧ᵗ
 compare {intT} a b                   = ⌊ a ≟ℤ b ⌋
 compare {boolT} a b                  = ⌊ a ≟B b ⌋
@@ -1714,7 +1821,7 @@ compare {listT _} [] []              = tt
 compare {listT _} (a ∷ as) (b ∷ bs)  = compare a b ∧ compare as bs
 compare {listT _} _ _                = ff
 compare {_ ⇒ _} _ _                  = ff
-\end{code}
+\end{code}\end{minipage}
 The above code implements standard comparison by structural induction. The only
 worthwhile remark here is that we refuse to perform any meaningful comparison of
 functions, instead treating any two functions as dissimilar.
@@ -1722,11 +1829,12 @@ functions, instead treating any two functions as dissimilar.
 \subsection{Execution}
 Now we are finally ready to define the execution of instructions. Let us start
 with the type,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run : ∀ {s s' e e' f f' i} → ⟦ s ⟧ˢ → ⟦ e ⟧ᵉ → ⟦ f ⟧ᵈ
                            → ⊢ s # e # f ↝ s' # e' # f'
                            → Delay ⟦ s' ⟧ˢ i
-\end{code}
+\end{code}\end{minipage}
 Here we say that in order to execute the code
 \[
   \D {⊢}\ s\ \I{\#}\ e\ \I{\#}\ f\ \D{↝}\ s'\ \I{\#}\ e'\ \I{\#}\ f'
@@ -1738,47 +1846,53 @@ be necessary in some cases.
 
 We proceed by structural induction on the last argument, i.e. the code. We start
 with the empty run,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d ∅ = now s
-\end{code}
+\end{code}\end{minipage}
 In the case of an empty run, it holds that $s = s'$ and so we simply finish the
 execution, returning the current stack.
 
 Next we consider all the cases when the run is not empty. We start with the
 instruction \I{ldf},
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d (ldf code >> r) =
   run (⟦ code ⟧ᶜ×⟦ e ⟧ᵉ×⟦ d ⟧ᵈ , s) e d r
-\end{code}
+\end{code}\end{minipage}
 Recall that this instruction is supposed to load a function. Since the
 semantical meaning of a function is a closure, this is what we must construct.
 We do so out of the code, given as an argument to \I{ldf}, and the current
 environment and function dump. We put this closure on the stack and proceed with
 execution of the rest of the run.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d (ld at >> r) = run (lookupᵉ e at , s) e d r
-\end{code}
+\end{code}\end{minipage}
 This instruction loads a value from the environment with the help of the
 auxiliary function \F{lookupᵉ} and puts it on the stack.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d (ldc const >> r) = run (makeConst const , s) e d r
   where makeConst : (c : Const) → ⟦ typeof c ⟧ᵗ
         makeConst (bool x)  = x
         makeConst (int x)   = x
-\end{code}
+\end{code}\end{minipage}
 In order to load a constant we introduce an auxiliary conversion function for
 converting from an embedded constant to a semantical value. The constant is then
 put on the stack.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d (ldr at >> r) =
   run (lookupᵈ d at , s) e d r
-\end{code}
+\end{code}\end{minipage}
 This instruction loads a closure from the function dump and puts it on the
 stack. Similarly to \I{ld}, we use an auxiliary function, in this case
 \F{lookupᵈ}.
 
 Next we handle the instruction for function application,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
   later
     λ where
@@ -1789,7 +1903,7 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
                         (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump)
                         code
           run (b , s) e d r
-\end{code}
+\end{code}\end{minipage}
 Here we have to employ coinduction for the first time, as we need to perform a
 call to \F{run} which is not structurally recursive. This call is used to
 evaluate the closure, starting from the empty stack \I{⋅}, in environment \A{fE}
@@ -1803,13 +1917,14 @@ to make an additional case split here on the rest of the run \A{r}, as a tail
 call can really only occur if \I{rap} is the last instruction in the current
 run. However, there is no syntactic restriction which would prevent more
 instructions to follow a \I{rap}.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> ∅) =
   later
     λ where
       .force →
         run ⋅ (a , fE) (⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , dump) code
-\end{code}
+\end{code}\end{minipage}
 Above is the case when we can perform the tail call. In this case, the types
 align: recall that in the type signature of \F{run} we promised to return a
 stack of the type \A{s'}. Here, as \I{rap} is the last instruction, this means a
@@ -1821,13 +1936,14 @@ know what \A{s'} is, and we have but one way to obtain a stack of this type:
 proceed with evaluating the rest of the run \A{r}. As such, we are unable to
 perform a tail call. Thus, we side-step the problem by converting \I{rap} to
 \I{ap}, performing standard function application.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
   later
     λ where
       .force →
         run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , ⋅) e d (ap >> r)
-\end{code}
+\end{code}\end{minipage}
 This approach also has the advantage of being able to use the instruction
 \I{rap} indiscriminately instead of \I{ap} in all situations, at the cost of
 delaying the execution slightly. However, as we discover in Section
@@ -1838,21 +1954,24 @@ but the topmost one. Once again, we have no guarantee that there are no more
 instructions after \I{rtn}, hence we make a recursive call to \F{run}. Under
 normal circumstances, \A{r} is the empty run \I{∅} and execution returns the
 stack here constructed.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (b , _) e d (rtn >> r) = run (b , ⋅) e d r
-\end{code}
+\end{code}\end{minipage}
 The \I{if} instruction follows,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (test , s) e d (if c₁ c₂ >> r) with test
 … | tt  = later λ where .force → run s e d (c₁ >+> r)
 … | ff  = later λ where .force → run s e d (c₂ >+> r)
-\end{code}
+\end{code}\end{minipage}
 This instruction examines the boolean value on top of the stack and prepends the
 correct branch to \A{r}.
 
 The instructions that remain are those implementing primitive operations which
 only manipulate the stack. We include them here for completeness' sake.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run s e d (nil >> r)              = run ([] , s) e d r
 run (x , y , s) e d (flp >> r)    = run (y , x , s) e d r
 run (x , xs , s) e d (cons >> r)  = run (x ∷ xs , s) e d r
@@ -1868,7 +1987,7 @@ run (x , y , s) e d (sub >> r)    = run (x - y , s) e d r
 run (x , y , s) e d (mul >> r)    = run (x * y , s) e d r
 run (a , b , s) e d (eq? >> r)    = run (compare a b , s) e d r
 run (x , s) e d (nt >> r)         = run (not x , s) e d r
-\end{code}
+\end{code}\end{minipage}
 The only interesting cases here are \I{head} and \I{tail} when called on an
 empty list. In this case, we signal an error by terminating the execution,
 returning instead an infinitely delayed value with \F{never}.
@@ -1879,7 +1998,8 @@ in tests. It takes some code which starts from an empty initial state. In
 addition, there is a second argument, which signifies an upper bound on the
 number of indirections that may be encountered during execution. If this bound
 is exceeded, \I{nothing} is returned.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
                → ℕ
                → Maybe ⟦ x ⟧ᵗ
@@ -1887,11 +2007,12 @@ runℕ c n = runFor n
   do
     (x , _) ← run ⋅ ⋅ ⋅ c
     now x
-\end{code}
+\end{code}\end{minipage}
 Here we made use of \F{runFor} defined in Section~\ref{delay_monad}.
 
 Now for the promised tests, we evaluate the examples from~\ref{syntax_tests}.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ 2+3 0 ≡ just (+ 5)
 _ = refl
 
@@ -1900,11 +2021,12 @@ _ = refl
 
 _ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
-\end{code}
+\end{code}\end{minipage}
 So far, so good! Now for something more complicated, we \F{foldl} the list
 $[1,2,3,4]$ with \F{plus} with the initial accumulator \AgdaNumber{0}. Below we
 have the code to achieve this,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 foldTest : ⊢ [] # [] # [] ↝ [ intT ] # [] # []
 foldTest =
      foldl
@@ -1915,12 +2037,13 @@ foldTest =
   >> loadList (1 ∷ 2 ∷ 3 ∷ 4 ∷ [])
   >+> ap
   >> ∅
-\end{code}
+\end{code}\end{minipage}
 And indeed,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ foldTest 28 ≡ just (+ 10)
 _ = refl
-\end{code}
+\end{code}\end{minipage}
 \section{Compilation from a higher-level language}
 \label{compilation}
 As a final step, we define a typed (though inconsistent) λ calculus and
@@ -1931,43 +2054,50 @@ We reuse the types defined in Section~\ref{secd_types}. This will not only
 make compilation cleaner, but also makes sense from a moral standpoint: we want
 our λ calculus to model the capabilities of our SECD machine. Hence, a context
 is a list of (SECD) types,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 Ctx = List Type
-\end{code}
+\end{code}\end{minipage}
 As for the typing relation, we use a similar trick as with SECD to allow
 recursive calls. We keep two contexts, \A{Γ} for tracking assumptions, as in
 ~\ref{lambda_syntax}, and \A{Ψ} for tracking types of functions we can call
 recursively.
-\begin{code}[hide]
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infix 2 _×_⊢_
-\end{code}
-\begin{code}
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 data _×_⊢_ : Ctx → Ctx → Type → Set where
   var  : ∀ {Ψ Γ x} → x ∈ Γ → Ψ × Γ ⊢ x
   ƛ_   : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_  : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
-\end{code}
+\end{code}\end{minipage}
 The first three typing rules resemble closely the ones from~\ref{lambda_syntax},
 with the addition of the function context \A{Ψ}.
 
 Next, we have a variation of \I{var} for loading functions from \A{Ψ},
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   rec : ∀ {Ψ Γ α β} → (α ⇒ β) ∈ Ψ → Ψ × Γ ⊢ α ⇒ β
-\end{code}
+\end{code}\end{minipage}
 We also have an if-then-else construct and a polymorphic comparison operator,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   if_then_else_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ boolT
                             → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α
                             → Ψ × Γ ⊢ α
   _==_ : ∀ {Ψ Γ α} → Ψ × Γ ⊢ α → Ψ × Γ ⊢ α → Ψ × Γ ⊢ boolT
-\end{code}
+\end{code}\end{minipage}
 Finally, we have the integers and some primitive operations on them,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   #_   : ∀ {Ψ Γ} → ℤ → Ψ × Γ ⊢ intT
   _∗_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
   _–_  : ∀ {Ψ Γ} → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT → Ψ × Γ ⊢ intT
-\end{code}
-\begin{code}[hide]
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
 infixr 2 ƛ_
 infixl 3 _$_
 infix 5 _==_
@@ -1976,22 +2106,24 @@ infixl 5 _–_
 
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
 #⁺ n = # (+ n)
-\end{code}
+\end{code}\end{minipage}
 We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals.
 
 As an example, consider the factorial function in this formalism,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 fac : [] × [] ⊢ (intT ⇒ intT)
 fac = ƛ if (var 𝟎 == #⁺ 1)
           then #⁺ 1
           else (var 𝟎 ∗ (rec 𝟎 $ (var 𝟎 – #⁺ 1)))
-\end{code}
+\end{code}\end{minipage}
 \subsection{Compilation}
 For the compilation, we use a scheme of two mutually recursive functions
 adapted from~\parencite{modernsecd}. The first function, \F{compileT}, is used
 to compile expressions in the tail position, whereas \F{compile} is used for the
 other cases.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
                          → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
@@ -2001,7 +2133,9 @@ mutual
   compileT (if t then a else b) =
     compile t >+> if (compileT a) (compileT b) >> ∅
   compileT t = compile t >+> rtn >> ∅
+\end{code}\end{minipage}
 
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α
                         → ⊢ s # Γ # Ψ ↝ (α ∷ s) # Γ # Ψ
   compile (var x)              = ld x >> ∅
@@ -2014,10 +2148,11 @@ mutual
   compile (# x)                = ldc (int x) >> ∅
   compile (a ∗ b)              = compile b >+> compile a >+> mul >> ∅
   compile (a – b)              = compile b >+> compile a >+> sub >> ∅
-\end{code}
+\end{code}\end{minipage}
 We can now compile the above definition of \F{fac}. Below is the result,
 adjusted for readability.
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : compile {s = []} fac ≡ ldf (
      ldc (int (+ 1)) >> ld here >> eq?
   >| if (ldc (int (+ 1)) >| rtn) (
@@ -2031,14 +2166,15 @@ _ : compile {s = []} fac ≡ ldf (
         >| rtn)
   ) >> ∅
 _ = refl
-\end{code}
+\end{code}\end{minipage}
 
 As a final test, we can apply the function \F{fac} to the number 5, compile the
 expression, and evaluate it on the SECD,
-\begin{code}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ (compile (fac $ #⁺ 5)) 10 ≡ just (+ 120)
 _ = refl
-\end{code}
+\end{code}\end{minipage}
 
 \chapter{Epilogue}
 
