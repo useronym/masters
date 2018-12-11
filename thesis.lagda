@@ -684,19 +684,23 @@ a ≟ℤ b with a ≟ℤ' b
 \section{Coinduction}
 \label{coinduction}
 Total languages, such as Agda, are sometimes wrongfully accused of lacking
-Turing-completeness. In reality, there are ways to model possibly
-non-terminating programs -- given some time limit for their execution. One such
-way is to introduce a monad which captures the concept of a recursive
-call~\parencite{mcbride2015turing}.
+Turing-completeness. By a total language is meant a language in which every
+function terminates. Since it is well-known that the problem of termination is
+undecidable in general, in actuality we are limited to languages in which every
+function is not only total, but provably so.
+
+In reality, there are ways to model possibly non-terminating programs — given
+some time limit for their execution. One such way is to introduce a monad that
+captures the concept of a recursive call~\parencite{mcbride2015turing}.
 
 In this section we introduce the concept of coinduction on the example of
-streams and then proceed to define a monad which will be used later on in
+streams and then proceed to define a monad that will be used later on in
 chapter 5 to give semantics to the execution of SECD machine code.
 
 For a more in-depth overview of coinduction in Agda and especially the
 aforementioned monad, please refer to~\parencite{coinduction}.
 
-The concepts presented can be made specific in category theory, where given a
+The concepts presented can be made precise in Category Theory, where given a
 functor $F$ we can speak of $F-$coalgebras. Coinduction, then, is a way of
 proving properties of such systems. Morally, the distinction between induction
 and coinduction is that induction proceeds by breaking down a problem into some
