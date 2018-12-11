@@ -109,17 +109,35 @@ SECD machine, introduced by Landin in 1964.
 Statically typed languages have many advantages over those lacking in this area.
 They give higher assurances to the correctness of the programs therein written,
 and they allow for stronger optimizations by the compiler. Perhaps most of all,
-they give the programmer a solid framework in which to reason about the code
-being written.
+however, they give the programmer a solid framework in which to reason about the
+code being written.
 
-Even in the community of statically typed languages, however, typed low-level
-assembly languages have not received much consideration. All the current
-mainstream assembly languages do not depend on a type system, instead trusting
-the compiler from a high-level language to generate valid programs. This is
-something we wish to address in this work, by introducing a type system for SECD
-instructions.
+Typed low-level assembly languages are an area that perhaps has not received
+much consideration: all the current mainstream assembly languages do not depend
+on a type system. The compiler generating this low-level code is trusted to only
+generate valid programs. This is something we wish to address in this work, by
+introducing a type system for SECD machine instructions.
 
-Still another 
+Still another direction of interest is that of formalizing programming
+languages.   
+
+In Chapter 2, we give a rough overview of constructivism, Intuitionistic logic,
+and type theory.
+
+In Chapter 3, the language Agda is introduced by way of example. We concentrate
+on the concepts used in the rest of this thesis.
+
+In Chapter 4, we show how the syntax and semantics of typed systems can be
+formalized in Agda. We introduce some machinery and, as an example, perform a
+rudimentary formalization of the Simply Typed λ Calculus.
+
+In Chapter 5, we present the formalism of SECD machines. We also introduce an
+extension of this formalism used in Chapter 6.
+
+Chapter 6 presents the main matter of this thesis. We formalize typed SECD code
+and then proceed to give it semantics by way of an embedding into Agda. Lastly,
+we define a high-level λ language and give compilation from this into typed SECD
+code.
 
 \chapter{Logic, Constructivism, Type Theory}
 \begin{chapquote}{Richard Feynman}
@@ -142,12 +160,12 @@ not enough to show that the opposite is not the case. In theory, this is
 achieved by disallowing the law of the excluded middle (LEM), which states that
 for any proposition $P$, $P$ either does or does not hold:
 \[
-  ∀P\quad.P ∨ ¬P
+  ∀P. \; P ∨ ¬P
 \]
 Certain other well-known classical tautologies, such as double negation
 elimination,
 \[
-  ∀P\quad.¬¬P → P
+  ∀P. \; ¬¬P → P
 \]
 are equivalent to this principle. It is also the case that the axiom of
 choice, as formulated in set theory, implies the law of the excluded middle, a
@@ -166,11 +184,11 @@ Intuitionism~\parencite{sep-logic-intuitionistic} states,
 
 In practice, there are considerations with regards to constructive approaches
 other than a purely philosophical one. Under the standard
-Brouwer-Heyting-Kolmogorov interpretation of the intuitionistic
+Brouwer-Heyting-Kolmogorov interpretation of the Intuitionistic
 logic~\parencite{troelstra2011history}, working in this setting means that every
 proposition proven amounts to a recipe, an algorithm, on how to transform the
 assumptions, or inputs, into the result, or output. For this reason,
-intuitionistic logic should be of high interest especially to computer scientists.
+Intuitionistic logic should be of high interest especially to computer scientists.
 
 As an instructive example, consider the normalization of proofs in some theory.
 It has been discovered that if one can establish soundness and completeness of
@@ -183,8 +201,8 @@ syntactic and semantic world. Reflecting a proof into the semantical structure
 (completeness), we obtain a normalized version of the original proof. This
 approach to normalization is commonly referred to as normalization by evaluation
 and has been used as early as 1975 by Martin-Löf in order to establish
-decidability of type\-checking for his intuitionistic theory of (dependent)
-types theory~\parencite{martin1975intuitionistic}, albeit not under the moniker
+decidability of type\-checking for his Intuitionistic Theory of (dependent)
+Types theory~\parencite{martin1975intuitionistic}, albeit not under the moniker
 of normalization by evaluation~\parencite{abel2013normalization}.
 
 \section{Type Theory}
@@ -224,8 +242,8 @@ properties, we need a type system stronger than STLC.
 In order to extend the expressivity to non-trivial propositions, dependent types
 were proposed first by de Bruijn~\parencite{de1967description} in 1967 in his
 project Automath, aiming at creating a language for encoding computer-verified
-mathematics. Later, in 1972, Martin-Löf formulated his intuitionistic type
-theory~\parencite{martin1975intuitionistic}, in which dependent types play a
+mathematics. Later, in 1972, Martin-Löf formulated his Intuitionistic Theory of
+Types~\parencite{martin1975intuitionistic}, in which dependent types play a
 central role. More recently, starting in the mid 2000's, Voevodsky introduced
 Univalent Foundations~\parencite{voevodsky2011univalent}, which aim to give
 practical foundations for modern mathematics in a way that allows for
@@ -766,8 +784,9 @@ indeed, correct,
   _ : takeˢ 7 (nats 0) ≡ 0 ∷ 1 ∷ 2 ∷ 3 ∷ 4 ∷ 5 ∷ 6 ∷ []
   _ = refl
 \end{code}\end{minipage}
-For a more interesting example of a stream, consider the Hailstone sequence,
-with a slight modification to the single step function, given below:
+For a more interesting example of a stream, consider the Hailstone
+sequence~\parencite{crandall19783}, with a slight modification to the single
+step function, given below:
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   step : ℕ → ℕ
@@ -2069,6 +2088,15 @@ This approach also has the advantage of being able to use the instruction
 delaying the execution slightly. However, as we discover in Section
 ~\ref{compilation}, this is hardly necessary.
 
+As an aside, we could discard the instruction \I{rap} from the formalization
+altogether and implement tail call optimization directly in the \I{ap}
+instruction in the case when the rest of the run is empty. However, the author
+feels that the presented approach is more instructive to the real workings of
+the machine. Consider that in a hypothetical hardware implementation we may be
+unable to examine the following instruction in such a straightforward manner as
+above. Instead, \I{rap} would simply discard the remaining instructions in the
+control register.
+
 Next, we have the \I{rtn} instruction, which simply drops all items from the stack
 but the topmost one. Once again, we have no guarantee that there are no more
 instructions after \I{rtn}, hence we make a recursive call to \F{run}. Under
@@ -2112,7 +2140,7 @@ The only interesting cases here are \I{head} and \I{tail} when called on an
 empty list. In this case, we signal an error by terminating the execution,
 returning instead an infinitely delayed value with \F{never}.
 
-\subsection{A note regarding function application}
+\subsection{A note regarding the function dump}
 There is one final remark to be said regarding the above implementation of the
 semantics. We have not captured the concept of the dump as introduced first in
 Chapter 5. Rather, we have exploited the Agda calls stack for the dump's
@@ -2161,14 +2189,21 @@ Now for the promised tests, we evaluate the examples from~\ref{syntax_tests}.
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ 2+3 0 ≡ just (+ 5)
 _ = refl
+\end{code}\end{minipage}
 
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ inc2 1 ≡ just (+ 3)
 _ = refl
+\end{code}\end{minipage}
 
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
 \end{code}\end{minipage}
-So far, so good! Now for something more complicated, we \F{foldl} the list
+So far, so good! The second argument to \F{runℕ} was chosen the lowest possible
+and denotes the number of indirections encountered in the form of \I{later}.
+
+Now for something more complicated, we \F{foldl} the list
 $[1,2,3,4]$ with \F{plus} and the initial accumulator \AgdaNumber{0}. Below we
 have the code to achieve this,
 
@@ -2190,8 +2225,8 @@ And indeed,
 _ : runℕ foldTest 28 ≡ just (+ 10)
 _ = refl
 \end{code}\end{minipage}
-Let us also examine the mapping function \F{map}, employed here to
-increment each element of the list $[1,2,3]$ by $1$,
+Let us also test the mapping function \F{map}, employed here to increment each
+element of the list $[1,2,3]$ by $1$,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 mapTest : ⊢ [] # [] # [] ↝ [ listT intT ] # [] # []
@@ -2289,8 +2324,10 @@ fac = ƛ if (var 𝟎 == #⁺ 1)
 \subsection{Compilation}
 For the compilation, we use a scheme of two mutually recursive functions
 adapted from~\parencite{modernsecd}. The first function, \F{compileT}, is used
-to compile expressions in the tail position, whereas \F{compile} is used for the
-other cases.
+to compile expressions in the \textit{tail position}, whereas \F{compile} is
+used for the other cases. Expression in a tail position is one which is final in
+a function. A recursive call in tail position can be optimized so that the call
+does not consume any additional stack space.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 mutual
@@ -2303,6 +2340,8 @@ mutual
     compile t >+> if (compileT a) (compileT b) >> ∅
   compileT t = compile t >+> rtn >> ∅
 \end{code}\end{minipage}
+The type of \F{compileT} reflects the fact that this function is called on the
+opened body of a lambda.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   compile : ∀ {Ψ Γ α s} → Ψ × Γ ⊢ α
@@ -2319,8 +2358,20 @@ mutual
   compile (a ∗ b)   = compile b >+> compile a >+> mul >> ∅
   compile (a – b)   = compile b >+> compile a >+> sub >> ∅
 \end{code}\end{minipage}
+The above is a fairly straighforward compilation process where we make a call to
+\F{compileT} in the compilation of a lambda. In the other cases we construct the
+corresponding sequence of SECD instructions.
+
+The function \F{compileT} is to be used when an expression is in the tail
+position. Whether tail call optimization occurs depends on the exact nature of
+this expression. In case of function application, we may indeed perform the
+optimization. In the case of an if-then-else construct, the branches therein may
+also receive tail call optimization, and so we recurse. In all other cases, the
+expression in question loses the option of tail call optimization. We compile
+the expression normally and append the \I{rtn} instruction.
+
 We now compile the above definition of \F{fac}. Below is the result,
-adjusted for readability.
+adjusted for readability:
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : compile {s = []} fac ≡ ldf (
@@ -2364,6 +2415,6 @@ As a final remark, the author would like to note that the above implementation
 of semantics did not require any sort of de-bugging: as soon as the Agda
 type-checker was satisfied, all the tests succeeded without any further need of
 modification to the semantics. This suggests that dependent types could be a
-valuable tool in implementation of safety-critical systems, a direction perhaps
-worthy of further pursuit.
+valuable tool in the implementation of safety-critical systems, a direction
+perhaps worthy of further pursuit.
 \end{document}
