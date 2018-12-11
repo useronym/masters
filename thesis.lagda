@@ -36,11 +36,17 @@
     TeXtitle      = {Coinductive Formalization of SECD Machine in Agda},
     keywords      = {SECD Agda formalization coinduction},
     TeXkeywords   = {SECD Agda formalization coinduction},
-    abstract      = {This is the abstract of my thesis, which can
+    abstract = {We give a formalization of SECD machine in a language called
+      Agda. We take full advantage of the presence of dependent types in Agda and
+      define typed assembly code for this machine. Then we give semantics to the typed
+      assembly by the use of coinduction. Finally, we define a λ calculus and give a
+      compilation procedure to SECD assembly, using a well-known
+      approach.},
+    thanks = {I would like to thank my friends and family for supporting
+      me throughout this work. You have been instrumental in its completion.
 
-                     span multiple paragraphs.},
-    thanks        = {I would like to thank my friends and family for supporting
-      me throughout this work.
+      I would also like to thank my supervisor for believing in me and this
+      topic and for willing to advise me while I worked remotely.
 
       I would also like to thank many users of the Freenode IRC network for
       helpful discussions regarding various topics connected to matters contained in
@@ -112,32 +118,37 @@ and they allow for stronger optimizations by the compiler. Perhaps most of all,
 however, they give the programmer a solid framework in which to reason about the
 code being written.
 
-Typed low-level assembly languages are an area that perhaps has not received
-much consideration: all the current mainstream assembly languages do not depend
-on a type system. The compiler generating this low-level code is trusted to only
-generate valid programs. This is something we wish to address in this work, by
-introducing a type system for SECD machine instructions.
+On the other hand, typed low-level assembly languages are an area that perhaps
+has not received much focus: all the current mainstream assembly languages do
+not possess a static type system. The compiler generating this low-level code is
+trusted to only generate valid programs. This is something we wish to address in
+this work by introducing a type system for SECD machine instructions.
 
 Still another direction of interest is that of formalizing programming
-languages.   
+languages. The challenges lie especially in formalizing typed languages, as here
+we must choose a practical representation of the typed code. Another
+consideration is that of giving semantics from within a total language (a
+language where every function is provably terminating), such as Agda, to a
+language with unlimited recursion. One possible approach is that of using
+coinduction, as we show in this work.
 
-In Chapter 2, we give a rough overview of constructivism, Intuitionistic logic,
+In Chapter 2, we give a quick overview of constructivism, Intuitionistic logic,
 and type theory.
 
-In Chapter 3, the language Agda is introduced by way of example. We concentrate
-on the concepts used in the rest of this thesis.
+In Chapter 3, the language Agda is introduced by way of example. We give
+considerations especially to the concepts used in the rest of this thesis.
 
 In Chapter 4, we show how the syntax and semantics of typed systems can be
-formalized in Agda. We introduce some machinery and, as an example, perform a
-rudimentary formalization of the Simply Typed λ Calculus.
+formalized in Agda. We introduce some common machinery and, as an example,
+perform a rudimentary formalization of the Simply Typed λ Calculus.
 
 In Chapter 5, we present the formalism of SECD machines. We also introduce an
 extension of this formalism used in Chapter 6.
 
 Chapter 6 presents the main matter of this thesis. We formalize typed SECD code
-and then proceed to give it semantics by way of an embedding into Agda. Lastly,
-we define a high-level λ language and give compilation from this into typed SECD
-code.
+and then proceed to give it semantics by way of an embedding into Agda, using
+coinduction. Lastly, we define a high-level λ language and implement compilation
+from this into typed SECD code.
 
 \chapter{Logic, Constructivism, Type Theory}
 \begin{chapquote}{Richard Feynman}
@@ -1367,6 +1378,10 @@ which behaves similarly to \texttt{ap}, with the modification that it does not
 bother pushing a return frame onto the dump.
 
 \chapter{Formalization}
+\begin{chapquote}{Ada Lovelace}
+  If you can't give me poetry, can't you give me poetical science?
+\end{chapquote}
+
 In this chapter, we approach the main topic of this thesis. We formalize a
 SECD machine in Agda, with typed syntax, and then proceed to define the
 semantics by way of coinduction. By typed syntax we mean an approach to SECD
@@ -2406,6 +2421,7 @@ _ = refl
   I walk slowly, like one who comes from so far away he doesn't expect to
   arrive.
 \end{chapquote}
+
 We succeeded in formalizing syntax and semantics of a version of the SECD
 machine with typed code. We employed Agda as a tool for writing this
 formalization, using dependent types to make only well-typed SECD code

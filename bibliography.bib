@@ -27,16 +27,13 @@
   address="Cham",
   pages="276--301",
   abstract="As proofs in type theory become increasingly complex, there is a growing need to provide better proof automation. This paper shows how to implement a Prolog-style resolution procedure in the dependently typed programming language Agda. Connecting this resolution procedure to Agda's reflection mechanism provides a first-class proof search tactic for first-order Agda terms. As a result, writing proof automation tactics need not be different from writing any other program.",
-  isbn="978-3-319-19797-5"
 }
 
 @article{coinduction,
   Author = {Andreas Abel and James Chapman},
   Title = {Normalization by Evaluation in the Delay Monad: A Case Study for Coinduction via Copatterns and Sized Types},
   Year = {2014},
-  Eprint = {arXiv:1406.2059},
-  Howpublished = {EPTCS 153, 2014, pp. 51-67},
-  Doi = {10.4204/EPTCS.153.4},
+  journal={arXiv preprint arXiv:1406.2059},
 }
 
 @InProceedings{mixfix,
@@ -49,7 +46,6 @@
   address="Berlin, Heidelberg",
   pages="80--99",
   abstract="A simple grammar scheme for expressions containing mixfix operators is presented. The scheme is parameterised by a precedence relation which is only restricted to be a directed acyclic graph; this makes it possible to build up precedence relations in a modular way. Efficient and simple implementations of parsers for languages with user-defined mixfix operators, based on the grammar scheme, are also discussed. In the future we plan to replace the support for mixfix operators in the language Agda with a grammar scheme and an implementation based on this work.",
-  isbn="978-3-642-24452-0"
 }
 
 @manual{agda-manual,
@@ -98,14 +94,15 @@
   organization={Springer}
 }
 
-@unpublished{modernsecd,
+@misc{modernsecd,
   title={Functional programming languages, Part II: abstract machines},
   author={Xavier Leroy},
   year={2015--2016},
-  url={https://xavierleroy.org/mpri/2-4/machines.pdf}
+  url={https://xavierleroy.org/mpri/2-4/machines.pdf},
+  howpublished={Course notes}
 }
 
-@article{graham1989secd,
+@misc{graham1989secd,
   title={Secd: Design issues},
   author={Graham, Brian},
   year={1989},
@@ -121,7 +118,6 @@
   address="New York, NY",
   pages="40--66",
   abstract="We describe work completed on a custom SECD chip which is powerful enough to run a LispKit compiler. The 20,000 transistor design was fabricated in 1988 and is being interfaced to a workstation so that it can run downloaded programs. We discuss the evolution of the architecture from its abstract specification and abstraction issues that arose at key levels in the verification of the design. The verification is being undertaken in Cambridge HOL. One hard issue (garbage collection) has been left over for a second iteration of the specification and verification.",
-  isbn="978-0-387-34801-8"
 }
 
 @article{krivine2007call,
@@ -178,7 +174,6 @@
   place={Cambridge},
   series={Cambridge Tracts in Theoretical Computer Science},
   title={Introduction to Coalgebra: Towards Mathematics of States and Observation},
-  DOI={10.1017/CBO9781316823187},
   publisher={Cambridge University Press},
   author={Jacobs, Bart},
   year={2016},
@@ -206,10 +201,14 @@
 }
 
 @article{brouwer1908unreliability,
-  title={The unreliability of the logical principles},
-  author={Brouwer, Luitzen Egbertus Jan},
-  journal={Brouwer},
-  year={1908}
+  title={LEJ Brouwer's ‘Unreliability of the Logical Principles’: A New Translation, with an Introduction},
+  author={Van Atten, Mark and Sundholm, G{\"o}ran},
+  journal={History and Philosophy of Logic},
+  volume={38},
+  number={1},
+  pages={24--47},
+  year={2017},
+  publisher={Taylor \& Francis}
 }
 
 @InCollection{sep-logic-intuitionistic,
@@ -253,10 +252,10 @@
   publisher={Springer}
 }
 
-@article{abel2013normalization,
+@misc{abel2013normalization,
   title={Normalization by Evaluation: Dependent Types and Impredicativity},
-  author={Abel, Andreas and Talk, Habilitation},
-  journal={Unpublished. http://www. tcs. ifi. lmu. de/\~{} abel/habil. pdf},
+  author={Abel, Andreas},
+  howpublished={Habilitationsschrift},
   year={2013}
 }
 
@@ -268,7 +267,7 @@
   publisher={University Press}
 }
 
-@article{frege1982philosophical,
+@incollection{frege1982philosophical,
   title={Correspondence with Frege},
   booktitle={Gottlob Frege: Philosophical and mathematical correspondence},
   author={Russell, Bertrand},
@@ -277,14 +276,13 @@
   year={1982}
 }
 
-@article{von1923introduction,
+@incollection{von1923introduction,
   title={On the introduction of transfinite numbers},
   author={Von Neumann, John},
   booktitle={From Frege to Gödel: A Source Book in Mathematical Logic, 1879-1931},
   pages={346--354},
   year={2002},
   note={Translated by Jean van Heijenoort. Original from 1923.},
-  isbn={0674324498}
 }
 
 @article{church1940formulation,
@@ -347,9 +345,9 @@
   publisher={Springer}
 }
 
-@article{de1967description,
+@misc{de1967description,
   title={Description of the language Automath},
-  author={de Bruijn, NG},
+  author={de Bruijn, Nicolaas Govert},
   year={1967},
   publisher={Technische Hogeschool Eindhoven}
 }
@@ -412,7 +410,7 @@
 }
 
 @article{crandall19783,
-  title={On the “3𝑥+ 1” problem},
+  title={On the “3x+ 1” problem},
   author={Crandall, Richard E},
   journal={Mathematics of computation},
   volume={32},
