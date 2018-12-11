@@ -97,6 +97,29 @@
 
 \begin{document}
 \chapter{Introduction}
+\begin{chapquote}{George Orwell, \textit{Homage to Catalonia}}
+  There are occasions when it pays better to fight and be beaten than not to
+  fight at all.
+\end{chapquote}
+Ever since the dawn of functional programming languages, there was a need for an
+efficient and practical execution model which would serve as the compilation
+target for the high-level functional languages. The first of these was the
+SECD machine, introduced by Landin in 1964.
+
+Statically typed languages have many advantages over those lacking in this area.
+They give higher assurances to the correctness of the programs therein written,
+and they allow for stronger optimizations by the compiler. Perhaps most of all,
+they give the programmer a solid framework in which to reason about the code
+being written.
+
+Even in the community of statically typed languages, however, typed low-level
+assembly languages have not received much consideration. All the current
+mainstream assembly languages do not depend on a type system, instead trusting
+the compiler from a high-level language to generate valid programs. This is
+something we wish to address in this work, by introducing a type system for SECD
+instructions.
+
+Still another 
 
 \chapter{Logic, Constructivism, Type Theory}
 \begin{chapquote}{Richard Feynman}
@@ -859,6 +882,9 @@ open import Data.Integer using (+_; _+_; _-_; _*_)
 \end{code}\end{minipage}
 
 \chapter{Formalizing Type Systems}
+\begin{chapquote}{Philip Wadler}
+  λ calculus isn't invented, it's discovered.
+\end{chapquote}
 In what follows, we take a look at how we can use Agda to formalize
 deductive systems and/or typed calculi. We concern ourselves with the
 simplest example there is, the Simply Typed λ Calculus.
@@ -2084,8 +2110,8 @@ formalization slightly, as we avoided having to formalize the dump register. The
 second reason is more serious: there is no simple approach to extending the
 above formalization with the dump register. This is due to the typed syntax of
 code. When writing some typed code, we must treat the \I{ap} instruction as
-having completed in one step; the next instruction after \I{ap} must already
-have access to the result of the function application in question, pretending
+having completed in one step, the next instruction after \I{ap} must already
+have access to the result of the function application in question; pretending
 that the function has already returned. However, when implementing the
 semantics, we need to perform all the instructions between the execution of
 \I{ap} and the return from the function with \I{rtn}. The types do not align
@@ -2127,7 +2153,7 @@ _ : runℕ λTest 2 ≡ just (+ 3)
 _ = refl
 \end{code}\end{minipage}
 So far, so good! Now for something more complicated, we \F{foldl} the list
-$[1,2,3,4]$ with \F{plus} with the initial accumulator \AgdaNumber{0}. Below we
+$[1,2,3,4]$ with \F{plus} and the initial accumulator \AgdaNumber{0}. Below we
 have the code to achieve this,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -2303,5 +2329,23 @@ _ = refl
 \end{code}\end{minipage}
 
 \chapter{Epilogue}
+\begin{chapquote}{Jorge Luis Borges, \textit{Selected poems}}
+  I walk slowly, like one who comes from so far away he doesn't expect to
+  arrive.
+\end{chapquote}
+We succeeded in formalizing syntax and semantics of a version of the SECD
+machine with typed code. We employed Agda as a tool for writing this
+formalization, using dependent types to make only well-typed SECD code
+representable, and using coinduction to handle the Turing-complete semantics.
 
+As for the practical usability of this implementation, it would be possible to
+produce an executable binary file implementing the semantics, as Agda compiles
+to Haskell. In addition, there is also an experimental JavaScript compiler.
+
+As a final remark, the author would like to note that the above implementation
+of semantics did not require any sort of de-bugging: as soon as the Agda
+type-checker was satisfied, all the tests succeeded without any further need of
+modification to the semantics. This suggests that dependent types could be a
+valuable tool in implementation of safety-critical systems, a direction perhaps
+worthy of further pursuit.
 \end{document}
