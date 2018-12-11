@@ -192,7 +192,7 @@ of terms of STLC.
 This leads to the realization that we can prove theorems by writing computer
 programs, and that subsequently we can have these proofs verified by a
 type-checker. However, in order to be able to express more interesting
-properties, we need a type system stronger than the Simply Typed λ Calculus.
+properties, we need a type system stronger than STLC.
 \subsection{Dependent Types}
 In order to extend the expressivity to non-trivial propositions, dependent types
 were proposed first by de Bruijn~\parencite{de1967description} in 1967 in his
@@ -284,10 +284,6 @@ module HiddenSyntax where
                     ---------
                    → Γ ⊢ α ⇒ β
 \end{code}\end{minipage}
-However, with great power comes great responsibility and one should be careful
-not to abuse the notation too much, a problem exacerbated by the fact that
-operator overloading, as used excessively in mathematics, is not directly
-possible.
 
 As an aside, there is also some support for proof automation in
 Agda~\parencite{auto}, however from the author's experience, the usability of this
@@ -512,7 +508,7 @@ would be that of associativity of addition,
 Here we proceed by induction on the variable \A{a}, which is given as an
 implicit argument: hence in the definition we surround the argument by curly
 braces in order to be able to access it. We have no need for the arguments \A{b}
-and \A{c}, and as they are implicit as well, we simply don't write them in the
+and \A{c}, and as they are implicit as well, we simply do not write them in the
 left-hand side of the definition.
 
 In the base case when $a = 0$ we are asked to prove that
@@ -782,7 +778,6 @@ Hence, the Collatz conjecture can be stated as follows:
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
     conjecture : ∀ n → Reaches (collatz n) 0
 \end{code}\end{minipage}
-The proof is left as a challenge to the reader.
 \subsection{The Delay Monad}
 The Delay monad captures the concept of unbounded recursive calls. There are two
 ways to construct a value of this type: \I{now}, which says that execution has
@@ -891,7 +886,7 @@ For a brief history of λ calculi, please refer to chapter 2.
 Firstly, we shall need some machinery to make our lives easier. We could use
 string literals as variable names in our system, however this would lead to
 certain difficulties further on, such as increased complexity of the
-formalization due to the need to handle string comparisons an such. Instead, we
+formalization due to the need to handle string comparisons and such. Instead, we
 shall use the concept commonly referred to as De Bruijn
 indices~\parencite{de1972lambda}. In this formalism variable identifiers consist
 of natural numbers, where each number $n$ refers to the variable bound by the
