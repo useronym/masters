@@ -125,28 +125,29 @@ Still another
 \begin{chapquote}{Richard Feynman}
   What I cannot create, I do not understand.
 \end{chapquote}
-This chapter presents a quick overview of several rather complex areas. The
-information here presented should be sufficient for understanding the rest of
-this thesis.
+This chapter presents a quick overview of several rather complex areas. However,
+the information here presented should be sufficient for understanding the rest
+of this thesis.
 
-Some previous knowledge of mathematical logic and computability theory would be
+Previous knowledge of mathematical logic and computability theory would be
 helpful in order for the reader to be able to appreciate all of the below
 content, however it is not assumed.
 
 \section{Intuitionistic logic}
 Intuitionistic logic~\parencite{brouwer1907foundations, brouwer1908unreliability}
-is a logic which, unlike most of current mathematics, only allows for
+is a logic that, unlike most of current mathematics, only allows for
 constructive arguments. In practice, the main difference is that proof by
 contradiction is not allowed: in order to show that something is the case, it is
 not enough to show that the opposite is not the case. In theory, this is
 achieved by disallowing the law of the excluded middle (LEM), which states that
 for any proposition $P$, $P$ either does or does not hold:
 \[
-  ∀P.P ∨ ¬P
+  ∀P\quad.P ∨ ¬P
 \]
-Certain other well-known tautologies, such as double negation elimination,
+Certain other well-known classical tautologies, such as double negation
+elimination,
 \[
-  ∀P.¬¬P → P
+  ∀P\quad.¬¬P → P
 \]
 are equivalent to this principle. It is also the case that the axiom of
 choice, as formulated in set theory, implies the law of the excluded middle, a
@@ -165,33 +166,36 @@ Intuitionism~\parencite{sep-logic-intuitionistic} states,
 
 In practice, there are considerations with regards to constructive approaches
 other than a purely philosophical one. Under the standard
-Brouwer-Heyting-Kolmogorov interpretation of intuitionistic
+Brouwer-Heyting-Kolmogorov interpretation of the intuitionistic
 logic~\parencite{troelstra2011history}, working in this setting means that every
 proposition proven amounts to a recipe, an algorithm, on how to transform the
 assumptions, or inputs, into the result, or output. For this reason,
 intuitionistic logic should be of high interest especially to computer scientists.
 
-As an instructive example, consider the normalization of terms in some theory.
+As an instructive example, consider the normalization of proofs in some theory.
 It has been discovered that if one can establish soundness and completeness of
 this theory with regard to some suitable semantics, this naturally gives rise to
-a normalizer for this theory~\parencite{coquand2002formalised}, merely by way of
-reflecting the term into the semantical structure (soundness), and reifying from
-the semantical structure back into syntax (completeness). This approach to
-normalization is commonly referred to as normalization by evaluation and has
-been used as early as 1975 by Martin-Löf in order to establish decidability of
-type-checking for a dependent type theory~\parencite{martin1975intuitionistic},
-albeit not under the moniker of normalization by evaluation
-~\parencite{abel2013normalization}.
+a normalizer for this theory~\parencite{coquand2002formalised}. In a
+constructive setting, the proof of an implication consists of a function, and so
+proofs of soundness and completeness give us a way to convert between the
+syntactic and semantic world. Reflecting a proof into the semantical structure
+(soundness), and reifying from the semantical structure back into syntax
+(completeness), we obtain a normalized version of the original proof. This
+approach to normalization is commonly referred to as normalization by evaluation
+and has been used as early as 1975 by Martin-Löf in order to establish
+decidability of type\-checking for his intuitionistic theory of (dependent)
+types theory~\parencite{martin1975intuitionistic}, albeit not under the moniker
+of normalization by evaluation~\parencite{abel2013normalization}.
 
 \section{Type Theory}
 Type theory was first introduced by Russell and Whitehead in 1910 in their
 transformational work Principia Mathematica~\parencite{whitehead1912principia} as
-a response to Russell's discovery of inconsistency of naïve set
+a response to Russell's discovery of inconsistency of the naïve set
 theory~\parencite{frege1982philosophical} in 1901. In type theory, every
-expression has an associated type, thus allowing syntactical restrictions to be
-put on which propositions can be formulated. Contrast this with set theory,
-where propositions such as $2 ∈ 3$ can be formulated\footnote{The above being,
-  in fact, true, as per the standard construction of natural numbers in set theory
+expression has an associated type, and there are rules for the formation of
+values and types dependent on these. Compare this with set theory, where
+propositions such as $2 ∈ 3$ can be formulated\footnote{The above being, in
+  fact, true, as per the standard construction of natural numbers in set theory
   due to von Neumann~\parencite{von1923introduction}.}.
 
 The next breakthrough in type theory was the discovery of the Simply Typed λ
@@ -200,13 +204,13 @@ avoid paradoxes present in the Untyped λ Calculus~\parencite{church1932set},
 which was found to be inconsistent by Kleene and
 Rosser~\parencite{kleene1935inconsistency}. The Untyped λ calculus was introduced
 as a universal model of computation, a point at which it succeeded, as it is
-equivalent in strength Turing machines~\parencite{turing1937computability}.
+equivalent in strength to Turing machines~\parencite{turing1937computability}.
 \subsection{Curry-Howard Correspondence}
 It was later observed by Howard that the Simply Typed λ Calculus (STLC) could be
 viewed as a language for construction of proofs in Natural
 Deduction~\parencite{howard1980formulae} (ND), an intuitionistic proof calculus
 introduced originally by Gentzen in 1934~\parencite{gentzen1935untersuchungen} as
-an attempt at a more natural language for logic. This correspondence simply
+an attempt at a more natural language for expressing proofs. This correspondence simply
 states that \textit{propositions} of ND are isomorphic with \textit{types} in
 STLC, \textit{proofs} of ND with \textit{terms} (or programs) of STLC, and
 \textit{normalization} of proofs in ND with \textit{conversion into normal form}
@@ -214,7 +218,7 @@ of terms of STLC.
 
 This leads to the realization that we can prove theorems by writing computer
 programs, and that subsequently we can have these proofs verified by a
-type-checker. However, in order to be able to express more interesting
+type checker. However, in order to be able to express more interesting
 properties, we need a type system stronger than STLC.
 \subsection{Dependent Types}
 In order to extend the expressivity to non-trivial propositions, dependent types
@@ -236,27 +240,28 @@ dependent functions $Π(a : A).B(a)$, where the type of $B$ can depend on the
 value $a$. A proof of such a proposition consists of a function which for any
 value $a$ produces the proof of $B(a)$. For example, consider the statement
 \[
-  Π(n : ℕ).even(n) ∨ odd(n)
+  Π(n : \mathbb{N}).even(n) ∨ odd(n).
 \]
 A proof of this proposition would consist of a decision procedure which for
-any natural number $n$ determines whether $n$ is even or odd.
+any natural number $n$ determines whether $n$ is even or odd and returns a proof
+of this fact.
 
 Corresponding with existential quantification $∃$ is the type of dependent
 products $Σ(a:A).B(a)$. A proof would consist of a pair of some value $a$ of
 type $A$ and a proof of $B(a)$. As an example, consider the statement that there
 exists a prime number,
 \[
-  Σ(n:ℕ).prime(n)
+  Σ(n:\mathbb{N}).prime(n).
 \]
-One possibility of a proof would be number $1$ and a proof that $1$ is a prime,
-which would hopefully be self-evident.
+One possibility of a proof would be the number $2$ and a proof that $2$ is
+prime, which would hopefully be self-evident.
 
 \subsection{Inhabitance}
 An important concept is that of inhabitance of some type. An inhabited type is a
-type which is non-empty, i.e., there are some values of this type. This is
-synonymous with the proposition this type corresponds to being provable, hence
-the values of some type are sometimes called witnesses to (the provability of)
-this proposition.
+type that is non-empty, i.e., there are some values of this type. This is
+analogous to the proposition that this type corresponds to a provable
+proposition. Thus the values of some type are sometimes called witnesses to
+(the provability of) the corresponding proposition.
 
 \chapter{Agda}
 \begin{chapquote}{From the topic of the official Agda IRC channel}
@@ -693,7 +698,7 @@ Streams are infinite lists. For example, consider the succession of all natural
 numbers: it is clearly infinite. In some functional languages, such as Haskell,
 this can be expressed as a lazily constructed list. Agda, however, being total,
 does not allow for such a construction directly: an infinite data structure is
-clearly not inductively construable. It is, however, observable: as with a
+clearly not inductively constructible. It is, however, observable: as with a
 regular list, we can peek at its head \AgdaField{hd}, and we can drop the head
 and look at the tail \AgdaField{tl} of the stream.
 
@@ -762,7 +767,7 @@ indeed, correct,
   _ = refl
 \end{code}\end{minipage}
 For a more interesting example of a stream, consider the Hailstone sequence,
-with a slight modification to the single step function, given as below:
+with a slight modification to the single step function, given below:
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   step : ℕ → ℕ
@@ -786,12 +791,15 @@ For example, observe the sequence starting from the number $12$,
   _ = refl
 \end{code}\end{minipage}
 As an aside, using a dependent product, we can express the predicate that a
-stream will eventually reach some value,
+stream will eventually reach some given value,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   Reaches : ∀ {A} → Stream A → A → Set
   Reaches xs a = Σ ℕ (λ n → atˢ n xs ≡ a)
 \end{code}\end{minipage}
+Here the binary function \F{atˢ} is used, which returns the $n$-th element of
+the stream \A{xs}.
+
 Hence, the Collatz conjecture can be stated as follows:
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
@@ -821,11 +829,12 @@ mutual
     field
       force : {j : Size< i} → Delay A j
 \end{code}\end{minipage}
-Here we also introduce the type \D{Size} which serves as a measure on the size
+Here we use the built-in type \D{Size} which serves as a measure on the size
 of the delay. Note that the field \AgdaField{force} requires this to strictly
 decrease. This measure aids the Agda type-checker in verifying that a definition
 is \textit{productive}, that is, some progress is made in each iteration
-of \AgdaField{force}.
+of \AgdaField{force}. The type \D{Size<} \A{i} is the type of all sizes 
+strictly smaller than \A{i}. 
 
 For any data-type we may define an infinitely delayed value,
 
@@ -851,10 +860,11 @@ mutual
   ∞never' : ∀ {i A} → ∞Delay A i
   force ∞never' = never'
 \end{code}\end{minipage}
-In other words, anonymous records allow us to succintly construct codata by use
+In other words, anonymous records allow us to succinctly construct codata by use
 of copatterns, without the need of writing unwieldy mutual blocks.
 
-Given a delayed value, we can attempt to retrieve it in a finite number of steps,
+Given a delayed value, we can attempt to retrieve it in a given finite number of
+steps,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 runFor : ∀ {A} → ℕ → Delay A ∞ → Maybe A
@@ -863,11 +873,12 @@ runFor zero (later _)     = nothing
 runFor (suc _) (now x)    = just x
 runFor (suc n) (later x)  = runFor n (force x)
 \end{code}\end{minipage}
-This idiom is useful for executing some computation which periodically offers
-its environment the chance to interrupt the computation, or proceed further on.
+This idiom is useful for executing a computation that periodically offers
+its environment a chance to interrupt the computation, or proceed further on.
 
-\D{Delay} is also a monad, with the unit operator being \I{now} and bind given
-below,
+\D{Delay} is also a monad, with the unit operator\footnote{In Haskell
+  terminology, \textit{return}.} being \I{now} and the bind
+operator given below,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 _>>=_ : ∀ {A B i} → Delay A i → (A → Delay B i) → Delay B i
@@ -1793,12 +1804,12 @@ drop the first element with \I{tail} and perform the recursive application with
 tail-call elimination.
 \section{Semantics}
 Having defined the syntax, we can now turn to semantics. In this section, we
-will give operational semantics to the SECD machine syntax defined in the
-previous section.
+give operational semantics to the SECD machine syntax defined in the previous
+section.
 
 \subsection{Types}
-We begin, similarly to how we handled the semantics in~\ref{lambda_semantics},
-by first giving semantics to the types. Here we have to proceed by mutual
+We begin, similarly to how we handled the semantics in Section ~\ref{lambda_semantics},
+by giving semantics to the types. Here we have to proceed by mutual
 induction, as in certain places we need to make references to the semantics
 of other types, and vice versa. The order of the following definitions is
 arbitrary from the point of view of correctness and was chosen purely for
@@ -1824,11 +1835,12 @@ We proceed by giving semantics to the environment,
   ⟦ [] ⟧ᵉ      = ⊤
   ⟦ x ∷ xs ⟧ᵉ  = ⟦ x ⟧ᵗ × ⟦ xs ⟧ᵉ
 \end{code}\end{minipage}
-The semantics of environment are fairly straightforward, we make a reference to
+The semantics of an environment are fairly straightforward, we make a reference to
 the semantic function for types and inductively define the environment as a
 product of semantics of each type in it.
 
-Next, we define the semantics of the function dump,
+Next, we define the semantics of the function dump, which will be necessary in
+the definition in \D{Closure},
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   ⟦_⟧ᵈ : FunDump → Set
@@ -1841,13 +1853,13 @@ Next, we define the semantics of the function dump,
 \end{code}\end{minipage}
 Since the type of the function dump technically permits also non-function types
 in it, we have to handle them here by simply saying that they may not be
-present in the function dump being realized. There is, after all, no instruction
-which would allow putting a non-function type in the dump.
+present in the function dump. There is, after all, no instruction that would
+allow putting a non-function type in the dump.
 
-Now finally for the definition of \D{Closure}, we define it as a record
+Now, finally for the definition of \D{Closure}. We define it as a record
 containing the code of the function, a realization of the starting environment,
-and finally a realization of the function dump, containing closures which may be
-called recursively from this closure.
+and finally a realization of the function dump. Recall that the function dump
+contains the closures introduced by \I{ldf} instructions higher in the syntax tree.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   record Closure (a b : Type) : Set where
@@ -1888,8 +1900,10 @@ lookupᵉ (x , _) here        = x
 lookupᵉ (_ , xs) (there w)  = lookupᵉ xs w
 \end{code}\end{minipage}
 Looking up values from the function dump is slightly more involved, because Agda
-doesn't let us pattern-match on the first argument as we did here. Instead, we
-must define an auxiliary function to drop the first element of the product,
+doesn't let us pattern-match on the first argument as we did here. This is
+because the definition of \F{⟦\_⟧ᵈ} is more involved than that of \F{⟦\_⟧ᵉ}.
+Specifically, there is the possibility of the dump being uninhabited. Instead,
+we must define an auxiliary function to drop the first element of the product,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
@@ -1899,10 +1913,9 @@ tailᵈ {pairT x x₁} ()
 tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
 \end{code}\end{minipage}
-We pattern-match on the type of the value in the environment in order to get
-Agda to realize that only a realization of a function may be in the function
-dump, at which point we can pattern-match on the product that is the function
-dump and drop the first element.
+We pattern-match on the type of the value in the environment. This forces Agda
+to realize that only a closure may be in the function dump, at which point we
+can pattern-match on the product and drop the first element.
 
 Now we can define the lookup operation for the function dump,
 
@@ -1917,7 +1930,7 @@ closure.
 Lastly, we define a function for comparing two values of the machine,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
-compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → ⟦ boolT ⟧ᵗ
+compare : {t : Type} → ⟦ t ⟧ᵗ → ⟦ t ⟧ᵗ → Bool
 compare {intT} a b                   = ⌊ a ≟ℤ b ⌋
 compare {boolT} a b                  = ⌊ a ≟B b ⌋
 compare {pairT _ _} (a , b) (c , d)  = compare a c ∧ compare b d
@@ -1926,8 +1939,9 @@ compare {listT _} (a ∷ as) (b ∷ bs)  = compare a b ∧ compare as bs
 compare {listT _} _ _                = ff
 compare {_ ⇒ _} _ _                  = ff
 \end{code}\end{minipage}
-The above code implements standard comparison by structural induction. The only
-worthwhile remark here is that we refuse to perform any meaningful comparison of
+The above code implements standard comparison by structural induction. Functions
+\F{\_≟ℤ\_} and \F{\_≟B\_} are standard functions implementing decidable equality
+for the corresponding types. We refuse to perform any meaningful comparison of
 functions, instead treating any two functions as dissimilar.
 
 \subsection{Execution}
@@ -1945,8 +1959,8 @@ Here we say that in order to execute the code
 \]
 we require realizations of the stack \A{s}, environment \A{e}, and function dump
 \A{f}. We return the stack the code stops execution in, wrapped in the
-\D{Delay} monad in order to allow for non-structurally inductive calls that will
-be necessary in some cases.
+\D{Delay} monad in order to allow for non-structurally inductive and — possibly
+non-terminating — calls that will be necessary in some cases.
 
 We proceed by structural induction on the last argument, i.e., the code. We start
 with the empty run,
@@ -1967,7 +1981,8 @@ run s e d (ldf code >> r) =
 Recall that this instruction is supposed to load a function. Since the
 semantical meaning of a function is a closure, this is what we must construct.
 We do so out of the code, given as an argument to \I{ldf}, and the current
-environment and function dump. We put this closure on the stack and proceed with
+environment and function dump. We use the constructor of \F{Closure},
+\I{⟦\_⟧ᶜ×⟦\_⟧ᵉ×⟦\_⟧ᵈ}. We put this closure on the stack and proceed with
 execution of the rest of the run.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -1982,7 +1997,7 @@ run s e d (ldc const >> r) = run (makeConst const , s) e d r
         makeConst (bool x)  = x
         makeConst (int x)   = x
 \end{code}\end{minipage}
-In order to load a constant we introduce an auxiliary conversion function for
+In order to load a constant, we introduce an auxiliary conversion function for
 converting from an embedded constant to a semantical value. The constant is then
 put on the stack.
 
@@ -1994,7 +2009,8 @@ This instruction loads a closure from the function dump and puts it on the
 stack. Similarly to \I{ld}, we use an auxiliary function, in this case
 \F{lookupᵈ}.
 
-Next we handle the instruction for function application,
+Next, we handle the instruction for function application, employing
+\AgdaKeyword{do}-syntax,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
@@ -2009,7 +2025,7 @@ run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (ap >> r) =
           run (b , s) e d r
 \end{code}\end{minipage}
 Here we have to employ coinduction for the first time, as we need to perform a
-call to \F{run} which is not structurally recursive. This call is used to
+call to \F{run} that is not structurally recursive. This call is used to
 evaluate the closure, starting from the empty stack \I{⋅}, in environment \A{fE}
 extended with the function argument \A{a}. The function dump also needs to be
 extended with the closure being evaluated in order to allow recursive calls.
@@ -2019,7 +2035,7 @@ and resume execution of the rest of the run \A{r} with \A{b} put on the stack.
 We now handle recursive tail calls, i.e., the instruction \I{rap}. We need
 to make an additional case split here on the rest of the run \A{r}, as a tail
 call can really only occur if \I{rap} is the last instruction in the current
-run. However, there is no syntactic restriction which would prevent more
+run. However, there is no syntactic restriction that would prevent more
 instructions to follow a \I{rap}.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -2039,7 +2055,7 @@ If there are more instructions after \I{rap}, we are not so lucky: here we don't
 know what \A{s'} is, and we have but one way to obtain a stack of this type:
 proceed with evaluating the rest of the run \A{r}. As such, we are unable to
 perform a tail call. Thus, we side-step the problem by converting \I{rap} to
-\I{ap}, performing standard function application.
+\I{ap}, performing the standard function application.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (a , ⟦ code ⟧ᶜ×⟦ fE ⟧ᵉ×⟦ dump ⟧ᵈ , s) e d (rap >> r) =
@@ -2053,10 +2069,10 @@ This approach also has the advantage of being able to use the instruction
 delaying the execution slightly. However, as we discover in Section
 ~\ref{compilation}, this is hardly necessary.
 
-Next we have the \I{rtn} instruction which simply drops all items from the stack
+Next, we have the \I{rtn} instruction, which simply drops all items from the stack
 but the topmost one. Once again, we have no guarantee that there are no more
 instructions after \I{rtn}, hence we make a recursive call to \F{run}. Under
-normal circumstances, \A{r} is the empty run \I{∅} and execution returns the
+normal circumstances, \A{r} is the empty run \I{∅} and the execution returns the
 stack here constructed.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -2072,7 +2088,7 @@ run (test , s) e d (if c₁ c₂ >> r) with test
 This instruction examines the boolean value on top of the stack and prepends the
 correct branch to \A{r}.
 
-The instructions that remain are those implementing primitive operations which
+The instructions that remain are those implementing primitive operations that
 only manipulate the stack. We include them here for completeness' sake.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -2210,7 +2226,7 @@ Ctx = List Type
 \end{code}\end{minipage}
 As for the typing relation, we use a similar trick as with the SECD function
 dump to allow recursive calls. We keep two contexts, \A{Γ} for tracking
-assumptions, as in ~\ref{lambda_syntax}, and \A{Ψ} for tracking types of
+variables, as in Section~\ref{lambda_syntax}, and \A{Ψ} for tracking types of
 functions we can call recursively.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}[hide]
@@ -2223,7 +2239,7 @@ data _×_⊢_ : Ctx → Ctx → Type → Set where
   ƛ_   : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × α ∷ Γ ⊢ β → Ψ × Γ ⊢ α ⇒ β
   _$_  : ∀ {Ψ Γ α β} → Ψ × Γ ⊢ α ⇒ β → Ψ × Γ ⊢ α → Ψ × Γ ⊢ β
 \end{code}\end{minipage}
-The first three typing rules resemble closely the ones from~\ref{lambda_syntax},
+The first three typing rules resemble closely the ones from Section~\ref{lambda_syntax},
 with the addition of the function context \A{Ψ}.
 
 Next, we have a variation of \I{var} for loading functions from \A{Ψ},
@@ -2253,12 +2269,14 @@ infixl 3 _$_
 infix 5 _==_
 infixl 10 _∗_
 infixl 5 _–_
+\end{code}\end{minipage}
+We also define the shorthand operator \F{\#⁺\_} for embedding Agda natural
+numbers into \I{\#\_},
 
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 #⁺_ : ∀ {Ψ Γ} → ℕ → Ψ × Γ ⊢ intT
 #⁺ n = # (+ n)
 \end{code}\end{minipage}
-We also define a shorthand operator \F{\#⁺\_} for embedding Agda naturals into
-\I{\#\_}.
 
 As an example, consider the factorial function in this formalism,
 
