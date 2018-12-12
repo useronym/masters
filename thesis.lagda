@@ -252,7 +252,7 @@ properties, we need a type system stronger than STLC.
 \subsection{Dependent Types}
 In order to extend the expressivity to non-trivial propositions, dependent types
 were proposed first by de Bruijn~\parencite{de1967description} in 1967 in his
-project Automath, aiming at creating a language for encoding computer-verified
+project Automath, aiming at creating a language for encoding computer verified
 mathematics. Later, in 1972, Martin-Löf formulated his Intuitionistic Theory of
 Types~\parencite{martin1975intuitionistic}, in which dependent types play a
 central role. More recently, starting in the mid 2000's, Voevodsky introduced
@@ -262,23 +262,27 @@ computer-verified proofs.
 
 Dependent types are types which can depend on values. They correspond with
 quantifiers from predicate logic, thus allowing one to naturally express more
-involved propositions.
+involved propositions. They are also useful in programming, allowing one to
+express very descriptive types, e.g. the type of vectors of fixed length.
 
 The type that corresponds to universal quantification $∀$ is the type of
 dependent functions $Π(a : A).B(a)$, where the type of $B$ can depend on the
 value $a$. A proof of such a proposition consists of a function which for any
-value $a$ produces the proof of $B(a)$. For example, consider the statement
+value $a$ produces the proof of $B(a)$. Note that if we choose $B(a) = C$ to be
+constant, we obtain the regular function type $A → C$. For example, consider the
+statement
 \[
   Π(n : \mathbb{N}).even(n) ∨ odd(n).
 \]
 A proof of this proposition would consist of a decision procedure which for
 any natural number $n$ determines whether $n$ is even or odd and returns a proof
-of this fact.
+of this fact. 
 
 Corresponding with existential quantification $∃$ is the type of dependent
 products $Σ(a:A).B(a)$. A proof would consist of a pair of some value $a$ of
-type $A$ and a proof of $B(a)$. As an example, consider the statement that there
-exists a prime number,
+type $A$ and a proof of $B(a)$. Similarly to dependent function, choosing $B(a)
+= C$ constant, we obtain the regular (cartesian) product $A×C$. As an example,
+consider the statement that there exists a prime number,
 \[
   Σ(n:\mathbb{N}).prime(n).
 \]
@@ -375,6 +379,7 @@ data ⊥ : Set where
 Note that there are no constructors declared for this type. Due to the inner
 workings of Agda, this guarantees us an inhabited type.
 
+\pagebreak
 The empty type also allows us to define the negation of a proposition,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
@@ -396,7 +401,7 @@ Since both constructors have the same type signature, we take advantage of a
 feature in Agda that allows us to declare such constructors on one line,
 together with the shared type.
 
-Now we can declare a function that will perform negation of Boolean values,
+Now we can declare a function that will perform the negation of Boolean values,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 not : Bool → Bool
@@ -416,8 +421,11 @@ ff ∧ _ = ff
 \end{code}\end{minipage}
 
 \subsection{Products}
+A more interesting type is that of Cartesian products. Here we already need to
+parametrize our type by two other types of values in the product.
+
 To define the product type, it is customary to use a record. This will give us
-implicit projection functions from the type.
+implicit projection functions from the type. The syntax to achieve this follows,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 record _×_ (A : Set) (B : Set) : Set where
@@ -429,7 +437,6 @@ record _×_ (A : Set) (B : Set) : Set where
 \begin{code}[hide]
 open _×_
 infixr 4 _,_
-
 module HiddenProducts where
 \end{code}
 Here we declare a new record type, parametrized by two other types,
@@ -444,7 +451,7 @@ As an example, we can create a pair of two boolean values,
   _ = tt , ff
 \end{code}\end{minipage}
 Here we see another use of the underscore: we can use it as a placeholder in the
-stead of an identifier. This is useful in situations where we wish to give some
+place of an identifier. This is useful in situations where we wish to give some
 example we won't be using in the future.
 
 To showcase the use of projections, we can define an uncurried version of
@@ -454,13 +461,14 @@ To showcase the use of projections, we can define an uncurried version of
   conj : Bool × Bool → Bool
   conj r = proj₁ r ∧ proj₂ r
 \end{code}\end{minipage}
-In practice, however, it is often less cumbersome to instead employ pattern
+In practice, however, it can often be less cumbersome to instead employ pattern
 matching together with the constructor syntax in order to de-structure a record,
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   conj' : Bool × Bool → Bool
   conj' (a , b) = a ∧ b
 \end{code}\end{minipage}
+
 \subsection{Natural numbers}
 To see a more interesting example of a type, let us consider the type of natural numbers. These can be implemented using Peano encoding, as shown below.
 
@@ -558,6 +566,9 @@ would be that of associativity of addition,
   +-assoc {zero}   = refl
   +-assoc {suc a}  = let a+[b+c]≡[a+b]+c = +-assoc {a}
                       in ≡-cong suc a+[b+c]≡[a+b]+c
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
     where ≡-cong : {A B : Set} {a b : A}
                    → (f : A → B) → a ≡ b → f a ≡ f b
           ≡-cong f refl = refl
@@ -630,7 +641,7 @@ and that the type \D{⊥} is not,
   _ : Dec ⊥
   _ = no λ()
 \end{code}\end{minipage}
-by discharging the absurd pattern by $λ()$. The constructor \I{no} takes a value
+by using the absurd lambda, $λ()$. The constructor \I{no} takes a value
 of type \F{¬}\D{⊥}, which stands for \D{⊥} → \D{⊥}. Since the left-hand side is
 absurd, Agda allows us to conclude anything, even \D{⊥}, by this syntax.
 
@@ -723,8 +734,8 @@ The moral distinction here is that while elements of algebraic structures, or
 data, are constructed, elements of coalgebraic structures, or codata, are
 observed.
 
-For a more in-depth introduction to coalgebra, please see
-~\parencite{jacobs_2016}.
+For a more in-depth introduction to coalgebra, please
+see~\parencite{jacobs_2016}.
 
 \subsection{Streams}
 Streams are infinite lists. For example, consider the succession of all natural
@@ -801,7 +812,7 @@ indeed, correct,
 \end{code}\end{minipage}
 For a more interesting example of a stream, consider the Hailstone
 sequence~\parencite{crandall19783}, with a slight modification to the single
-step function, given below:
+step function, given next.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   step : ℕ → ℕ
@@ -1206,8 +1217,8 @@ specifically, languages based on the abstract formalism of λ calculus.
 Other machines modeling execution of functional languages have since been
 proposed, some derived from SECD, others not. Notable examples are the Krivine
 machine~\parencite{krivine2007call}, which implements a call-by-name semantics,
-and the ZAM (Zinc abstract machine), which serves as a backend for the OCaml
-strict functional programming language~\parencite{leroy1990zinc}.
+and the ZAM (Zinc abstract machine), which serves as the backend for the OCaml
+functional programming language~\parencite{leroy1990zinc}.
 
 For an overview of different kinds of SECD machines, including a modern
 presentation of the standard call-by-value, and also call-by-name and
@@ -1351,23 +1362,26 @@ and (2) the fact that the closure does not need to be reconstructed from the
 code of the function and the corresponding environment.
 
 We also introduce the instruction \texttt{ldr} for loading closures from the
-function dump. It behaves analogously to the instruction \texttt{ld}, with the
-difference that \texttt{ld} serves for retrieving values from the environment,
-whereas \texttt{ldr} retrieves closures from the function dump.
+function dump. It behaves analogously to the instruction \texttt{ld}, using De
+Bruijn indices to index the closures in the function dump register.
 
 \begin{figure}[h]
   \centering
-  \begin{tabular}{L | L | L | L | L || L | L | L | L | L}
+  \begin{tabular}{L | L | L | L || L | L | L | L}
     \toprule
-    \multicolumn{5}{c||}{Before} & \multicolumn{5}{c}{After} \\[2mm]
-    \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c}{F} & \multicolumn{1}{c||}{D} & \multicolumn{1}{c}{S'} & \multicolumn{1}{c}{E'} & \multicolumn{1}{c}{C'} & \multicolumn{1}{c}{F'} & \multicolumn{1}{c}{D'} \\
+    \multicolumn{4}{c||}{Before} & \multicolumn{4}{c}{After} \\[2mm]
+    \multicolumn{1}{c}{S} & \multicolumn{1}{c}{E} & \multicolumn{1}{c}{C} & \multicolumn{1}{c||}{F} & \multicolumn{1}{c}{S'} & \multicolumn{1}{c}{E'} & \multicolumn{1}{c}{C'} & \multicolumn{1}{c}{F'} \\
     \midrule
-    s              & e & \texttt{ldr x}\ , c & f & d & f(x) , s & e    & c  & f & d \\
-    x , c'[e'] , s & e & \texttt{rap}\ , c   & f & d & ∅        & x,e' & c' & f & d \\
+    s              & e & \texttt{ldr x}\ , c & f        & f(x) , s & e    & c  & f        \\
+    x , c'[e'] , s & e & \texttt{ap}\ , c    & f        & ∅        & x,e' & c' & c'[e'],f \\
+    x , c'[e'] , s & e & \texttt{rap}\ , c   & f        & ∅        & x,e' & c' & f        \\
+    y , s          & e & \texttt{rtn}\ , c   & c'[e'],f & y , s'   & e'   & c' & f        \\
     \bottomrule
   \end{tabular}
   \caption{The above table presents the additional instructions from this
-    section. The capital letter F stands for the function dump.}
+    section. The capital letter F stands for the function dump. The dump
+    register D is omitted, as it is unchanged by the topmost three instructions,
+    and in the case of \texttt{rtn} behaves same as in Figure~\ref{secd}.}
   \label{secd_extra}
 \end{figure}
 
@@ -1434,7 +1448,8 @@ path connects to the start of the second one. This is enforced by the type
 system of Agda.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
-_>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c → Path R a c
+_>+>_ : ∀ {A R} {a b c : A} → Path R a b → Path R b c
+                            → Path R a c
 ∅        >+> r  = r
 (x >> l) >+> r  = x >> (l >+> r)
 \end{code}\end{minipage}
@@ -1778,16 +1793,12 @@ For an example of a recursive function, consider that of a mapping function,
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 map : ∀ {e f a b} →
       ⊢ [] # e # f ⊳ [ (a ⇒ b) ⇒ listT a ⇒ listT b ] # e # f
-map = ldf (ldf body >| rtn)
-  where
-  body =
-           ld 𝟎
-        >> nil?
-        >+> if (nil >| rtn)
-            (ldr 𝟎 >> ld 𝟎 >> tail >> ap
-            >> ld 𝟏 >> ld 𝟎 >> head >> ap
-            >| cons)
-        >> ∅
+map = ldf (ldf (ld 𝟎 >> nil?
+               >+> if (nil >| rtn)
+                   (ldr 𝟎 >> ld 𝟎 >> tail >> ap
+                   >> ld 𝟏 >> ld 𝟎 >> head >> ap
+                   >| cons)
+               >> ∅) >| rtn)
 \end{code}\end{minipage}
 
 Here we first load the list we are mapping over. We check for emptiness, if the
@@ -1894,10 +1905,7 @@ in it, we have to handle them here by simply saying that they may not be
 present in the function dump. There is, after all, no instruction that would
 allow putting a non-function type in the dump.
 
-Now, finally for the definition of \D{Closure}. We define it as a record
-containing the code of the function, a realization of the starting environment,
-and finally a realization of the function dump. Recall that the function dump
-contains the closures introduced by \I{ldf} instructions higher in the syntax tree.
+Now, finally for the definition of \D{Closure}.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
   record Closure (a b : Type) : Set where
@@ -1911,6 +1919,11 @@ contains the closures introduced by \I{ldf} instructions higher in the syntax tr
       ⟦e⟧ᵉ  : ⟦ e ⟧ᵉ
       ⟦f⟧ᵈ  : ⟦ f ⟧ᵈ
 \end{code}\end{minipage}
+We define it as a record containing the code of the function, a realization of
+the starting environment, and finally a realization of the function dump. Recall
+that the function dump contains the closures introduced by \I{ldf} instructions
+higher in the syntax tree.
+
 This concludes the mutual block of definitions.
 
 There is one more type we have not handled yet, \D{Stack}, which is not required
@@ -1948,12 +1961,16 @@ tailᵈ : ∀ {x xs} → ⟦ x ∷ xs ⟧ᵈ → ⟦ xs ⟧ᵈ
 tailᵈ {intT} ()
 tailᵈ {boolT} ()
 tailᵈ {pairT x x₁} ()
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 tailᵈ {a ⇒ b} (_ , xs) = xs
 tailᵈ {listT x} ()
 \end{code}\end{minipage}
 We pattern-match on the type of the value in the environment. This forces Agda
 to realize that only a closure may be in the function dump, at which point we
-can pattern-match on the product and drop the first element.
+can pattern-match on the product and drop the first element. The syntax $()$ is
+the absurd pattern, which we can use to discharge nonsensical assumptions.
 
 Now we can define the lookup operation for the function dump,
 
@@ -2151,6 +2168,9 @@ run ((x , _) , s) e d (fst >> r)  = run (x , s) e d r
 run ((_ , y) , s) e d (snd >> r)  = run (y , s) e d r
 run (x , y , s) e d (add >> r)    = run (x + y , s) e d r
 run (x , y , s) e d (sub >> r)    = run (x - y , s) e d r
+\end{code}\end{minipage}
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
 run (x , y , s) e d (mul >> r)    = run (x * y , s) e d r
 run (a , b , s) e d (eq? >> r)    = run (compare a b , s) e d r
 run (x , s) e d (nt >> r)         = run (not x , s) e d r
@@ -2191,6 +2211,10 @@ in tests. It takes some code which starts from an empty initial state. In
 addition, there is a second argument, which signifies an upper bound on the
 number of indirections that may be encountered during execution. If this bound
 is exceeded, \I{nothing} is returned.
+
+Similarly to the tests in Chapter 4, we can use propositional equality to
+directly embed them into Agda code, as the type checker can be left to perform
+the evaluation of the SECD code.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 runℕ : ∀ {x s} → ⊢ [] # [] # [] ↝ (x ∷ s) # [] # []
@@ -2348,8 +2372,10 @@ used for the other cases. Expression in a tail position is one which is final in
 a function. A recursive call in tail position can be optimized so that the call
 does not consume any additional stack space.
 
-\noindent\begin{minipage}[]{\textwidth}\begin{code}
+\begin{code}[hide]
 mutual
+\end{code}
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
   compileT : ∀ {Ψ Γ α β} → (α ⇒ β ∷ Ψ) × (α ∷ Γ) ⊢ β
                          → ⊢ [] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
                            ↝ [ β ] # (α ∷ Γ) # (α ⇒ β ∷ Ψ)
@@ -2389,8 +2415,16 @@ also receive tail call optimization, and so we recurse. In all other cases, the
 expression in question loses the option of tail call optimization. We compile
 the expression normally and append the \I{rtn} instruction.
 
-We now compile the above definition of \F{fac}. Below is the result,
-adjusted for readability:
+As a final test, we apply the function \F{fac} to the number 5, compile the
+expression, and evaluate it on the SECD,
+
+\noindent\begin{minipage}[]{\textwidth}\begin{code}
+_ : runℕ (compile (fac $ #⁺ 5)) 10 ≡ just (+ 120)
+_ = refl
+\end{code}\end{minipage}
+
+We can also observe the generated SECD code. The following has been adjusted for
+readability and expressed as a propositional equality.
 
 \noindent\begin{minipage}[]{\textwidth}\begin{code}
 _ : compile {s = []} fac ≡ ldf (
@@ -2408,13 +2442,7 @@ _ : compile {s = []} fac ≡ ldf (
 _ = refl
 \end{code}\end{minipage}
 
-As a final test, we apply the function \F{fac} to the number 5, compile the
-expression, and evaluate it on the SECD,
-
-\noindent\begin{minipage}[]{\textwidth}\begin{code}
-_ : runℕ (compile (fac $ #⁺ 5)) 10 ≡ just (+ 120)
-_ = refl
-\end{code}\end{minipage}
+This concludes the implementation of SECD machine in Agda.
 
 \chapter{Epilogue}
 \begin{chapquote}{Jorge Luis Borges, \textit{Selected poems}}
